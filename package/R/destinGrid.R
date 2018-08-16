@@ -16,7 +16,7 @@ destinGrid = function(rse, sampleName,
     clusterEvalQ(cl, library(data.table))
     clusterExport(cl, list("rse", "TSSWeightsList", "DHSWeightsList", "weightGrid",
                            "getDestin", "PCrange", "getLogLike","dmultFast" ,
-                           "peaksDir", "sampleName"))
+                           "sampleName", "nClusters"), envir = environment())
     resultsList = parLapply(cl, 1:nrow(weightGrid), function(gridRow) {
       TSSWeights = TSSWeightsList[[weightGrid[gridRow,]$TSSIndex]] 
       DHSWeights = DHSWeightsList[[weightGrid[gridRow,]$DHSIndex]]

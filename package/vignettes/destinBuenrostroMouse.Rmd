@@ -5,19 +5,8 @@ output:
     highlight: pygments
     toc: true
 ---
-# 1. Overview of analysis pipeline
 
-
-# 2. Questions & issues
-  If you have any questions or problems when using MARATHON, please feel free to open a new issue [here](https://github.com/yuchaojiang/MARATHON/issues). You can also email the maintainers of the corresponding packages -- the contact information is below.
-  
-  * Gene Urrutia (urrutia at email dot unc dot edu)
-  <br>
-  Department of Biostatistics, UNC-Chapel Hill
-
-* [Yuchao Jiang](http://sph.unc.edu/adv_profile/yuchao-jiang-phd/) (yuchaoj at email dot unc dot edu)
-  <br>
-  Department of Biostatistics & Department of Genetics, UNC-Chapel Hill
+For this example we begin at this step 3.1. Load Destin R package.  Previous steps are described for reference.
 
 # 1. Data
 - Mouse scATAC-seq from Buenrostro et al. 
@@ -122,8 +111,7 @@ $srcDir/callPeaks.sh \
 
 ## 3.1. Load Destin R package
 ```{r message=FALSE, warning=FALSE}
-#install.packages("~/scATACseq/scATACseqPipeline/destin", repos = NULL, type = "source")
-#install.packages("~/Documents/gitRepos/scATACseqPipeline/destin", repos = NULL, type = "source")
+#install.packages("~/Documents/gitRepos/destin/package", repos = NULL, type = "source")
 library(destin, quietly = T)
 ```
 
@@ -131,8 +119,7 @@ library(destin, quietly = T)
 ## 3.2. set parameters
 ```{r}
 sampleName = "BuenrostroMouse"
-#outDir = "~/scATACseq/pipelinePractice/BuenrostroMouse"
-outDir = "~/Documents/gitRepos/scATACseqPipeline/practice/BuenrostroMouse"
+outDir = "~/Documents/gitRepos/destin/practice/BuenrostroMouse"
 cellDataFile = file.path(outDir, "SraRunTableBuenrostroMouse.txt")
 model = "mm10"
 ```
@@ -165,12 +152,10 @@ colData(rse) = colMerged
 ```
 
 ## 3.5. annotate regions
+This DHS file must be downloaded
 ```{r}
-#This large file must be downloaded
-DHSfile = system.file("annotation/encode", 
-                      paste0("DHS", model, ".Rdata"), 
-                      package="destin")
-
+DHSfile = file.path("~/Dropbox/Gene_shared/scATACseq/destin", 
+                      paste0("DHS", model, ".Rdata"))
 rse = annotateRSE(rse, model, DHSfile)
 ```
 

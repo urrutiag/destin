@@ -6,6 +6,8 @@ output:
     toc: true
 ---
 
+For this example we begin at this step 3.1. but skip 3.3 through 3.5 for due to large file sizes.  Previous steps are described for reference.
+
 # 1. Data
 - P56 forebrain mouse scATAC-seq from Preissl et al.
 - GEO GSE100033 
@@ -74,10 +76,10 @@ This is necessary becasue with combinatorial barcode technology, the fastq conta
 for read in R1 R2
 do
 sbatch $homeDir/src/splitCells.py \
-  --inputFile $outDir/fastqCombined/$sampleName.$read.fastq.gz \
-  --outputDir $outDir \
-  --sampleName $sampleName.$read \
-  --cellIDFile $cellIDFile 
+--inputFile $outDir/fastqCombined/$sampleName.$read.fastq.gz \
+--outputDir $outDir \
+--sampleName $sampleName.$read \
+--cellIDFile $cellIDFile 
 done
 ```
 
@@ -96,11 +98,11 @@ done
 ```{bash eval=FALSE}
 for cellID in "${cellIDs[@]}"
 do
-  $srcDir/fastqToBam.sh \
-    -c $cellID  \
-    -s $sampleName \
-    -o $outDir \
-    -g $genomeBowtie
+$srcDir/fastqToBam.sh \
+-c $cellID  \
+-s $sampleName \
+-o $outDir \
+-g $genomeBowtie
 done
 ```
 
@@ -111,19 +113,18 @@ done
 
 ```{bash eval=FALSE}
 $srcDir/callPeaks.sh \
-  -s $sampleName \
-  -o $outDir \
-  -g $genomeBedtools \
-  -l $blacklistFile \
-  -q $genomeMacs2
+-s $sampleName \
+-o $outDir \
+-g $genomeBedtools \
+-l $blacklistFile \
+-q $genomeMacs2
 ```
 
 # 3. Destin
 
 ## 3.1. Load Destin R package
 ```{r message=FALSE, warning=FALSE}
-#install.packages("~/scATACseq/scATACseqPipeline/destin", repos = NULL, type = "source")
-#install.packages("~/Documents/gitRepos/scATACseqPipeline/destin", repos = NULL, type = "source")
+#install.packages("~/Documents/gitRepos/destin/package", repos = NULL, type = "source")
 library(destin, quietly = T)
 ```
 
@@ -131,24 +132,23 @@ library(destin, quietly = T)
 ## 3.2. set parameters
 ```{r}
 sampleName = "PreisslP56"
-#outDir = "~/scATACseq/pipelinePractice/PreisslP56"
-outDir = "~/Documents/gitRepos/scATACseqPipeline/practice/PreisslP56"
+outDir = "~/Documents/gitRepos/destin/practice/PreisslP56"
 cellDataFile = file.path(outDir, "cellData1Preissl.txt")
 model = "mm10"
 ```
 
 
 ## 3.3. create RSE from bam and peaks
-```{r}
+```{r eval=FALSE}
 bamDir = file.path(outDir, "bam")
 peaksDir = file.path(outDir, "peaks")
 bedFile = file.path(peaksDir, 
-    paste0(sampleName, "_peaks.blacklist_removed.narrowPeak"))
+                    paste0(sampleName, "_peaks.blacklist_removed.narrowPeak"))
 
 extraCols_narrowPeak <- c(signalValue = "numeric", pValue = "numeric",
                           qValue = "numeric", peak = "integer")
 bedData = import(bedFile, format = "BED",
-               extraCols = extraCols_narrowPeak)
+                 extraCols = extraCols_narrowPeak)
 
 bamFiles = dir( bamDir, pattern = "final.bam" )
 bamFiles = bamFiles[!grepl("bai", bamFiles)]
@@ -158,14 +158,14 @@ rse = createRSE(bamDir, bamFiles, bedData)
 
 
 ## 3.4. append experimental information if available
-```{r}
+```{r eval=FALSE}
 cellData = fread(cellDataFile) 
 colMerged = merge(rse@colData, cellData, by.x = "cellID", by.y = "Run")
 colData(rse) = colMerged 
 ```
 
 ## 3.5. annotate regions
-```{r}
+```{r eval=FALSE}
 #This large file must be downloaded
 DHSfile = system.file("annotation/encode", 
                       paste0("DHS", model, ".Rdata"), 
@@ -173,6 +173,13 @@ DHSfile = system.file("annotation/encode",
 
 rse = annotateRSE(rse, model, DHSfile)
 ```
+
+## 3.5.1. load rse
+For this example we begin at this step
+```{r}
+load(file.path(outDir, "DestinP56Annotated.Rdata"))
+```
+
 
 ## 3.6. QC
 ```{r}
@@ -182,34 +189,50 @@ rse = doQC(rse)
 ## 3.7. Determine number of clusters
 ```{r}
 set.seed(10)
-clusterEst = estimateNClusters(rse,   clusterVec = 1:5)
+clusterEst = estimateNClusters(rse,   clusterVec = 1:20)
 qplot(data = clusterEst$logLikes, x = nClusters, y = logLike) 
 ```
 
 ## 3.8. Destin
+Previous run with default tuning parameter options estimated the optimal parameters to be 10 PCs, TSS weights (1,2) and DHS weights (1,3).  You may verify this by setting to default tuning parameter ranges, but this will take longer depending on number of cpu cores. Set nCores to an appropriate value based on your system.
 ```{r warning=FALSE}
+nCores = 3
+PCrange = 10:11
+TSSWeightsList = list(c(1,1),c(1,2))
+DHSWeightsList = list(c(1,1), c(1,3))
+sampleName = "PreisslP56"
 nClusters = clusterEst$nClustersEstimate
-PCrange = 3:10
-TSSWeightsList = list(c(1,2), c(1,1.5), c(1,1.25), c(1,1))
-DHSWeightsList = list(c(1,1), c(1,2), c(1,3), c(1,5))
-results = destinGrid (rse, sampleName, 
-            PCrange = PCrange,
-            TSSWeightsList = TSSWeightsList,
-            DHSWeightsList = DHSWeightsList,
-            nClusters = nClusters)
-results
+results = destinGrid (rse, sampleName,
+                      PCrange = PCrange,
+                      TSSWeightsList = TSSWeightsList,
+                      DHSWeightsList = DHSWeightsList,
+                      nClusters = nClusters,
+                      nCores = 3)
+```
+
+Best results were found using 10 PCs, TSS weights (1,2) and DHS weights (1,3).  We examine how our results match with the cell type labels provides by Preissl et al.  
+cluster 1: inhibitory neurons 1
+cluster 2: microglia and astrocytes
+cluster 3: excitatory neurons
+cluster 4: oligodendrocytes
+cluster 5: inhibitory neuron
+```{r}
+table(results$cluster$cluster, rse$cell_type)
 ```
 
 
 ## 3.9. Differential Accessibility
-Calculate differential Accessibility
+Calculate differential Accessibility for the first 1000 regions
 ```{r}
-rse = getDiffAccess(rse, clusterMap = results$cluster)
+#set nCores to an appropriate value based on your system
+nCores = 3
+rse1000 = rse[1:1000,]
+rse1000 = getDiffAccess(rse1000, clusterMap = results$cluster)
 ```
 
-Results of differential Accessibility
+Results of differential Accessibility: clusters 1 and 2
 ```{r}
-rowRanges(rse)[order(rowRanges(rse)$pValsCor_1, decreasing = F)][1:10, c("feature", "pValsCor_1", "log2FC_1")] 
+rowRanges(rse1000)[order(rowRanges(rse1000)$pValsCor_1, decreasing = F)][1:10, c("feature", "pValsCor_1", "log2FC_1")] 
 
-rowRanges(rse)[order(rowRanges(rse)$pValsCor_2, decreasing = F)][1:10, c("feature", "pValsCor_2", "log2FC_2")] 
+rowRanges(rse1000)[order(rowRanges(rse1000)$pValsCor_2, decreasing = F)][1:10, c("feature", "pValsCor_2", "log2FC_2")] 
 ```
