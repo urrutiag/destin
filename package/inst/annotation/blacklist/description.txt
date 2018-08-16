@@ -1,0 +1,4 @@
+ENCFF547MET mm10.blacklist **
+ENCFF419RSJ GRCh38 blacklist
+ENCFF001TDO GRCh38 blacklist **
+ENCFF000KJP GRCh38 blacklist

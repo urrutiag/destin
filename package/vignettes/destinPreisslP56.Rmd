@@ -1,0 +1,215 @@
+---
+title: "Destin Preissl P56 forebrain"
+output:
+  rmarkdown::html_document:
+    highlight: pygments
+    toc: true
+---
+
+# 1. Data
+- P56 forebrain mouse scATAC-seq from Preissl et al.
+- GEO GSE100033 
+- 5 primary cell types (8 sub types)
+- Combinatorial barcode technology
+- 2088 cells (post QC) (50 cells in our toy example)
+- original fastq files contain all 3034 cells combined
+
+# 2. Bioinformatics pipeline
+
+## 2.1. Set up parameters, paths, and directories
+
+### 2.1.1. designate inputs and parameters
+```{bash eval=FALSE}
+outDir=~/scATACseq/pipelinePractice/PreisslP56
+SRRFile=$outDir/SRR_Acc_ListPreisslP56.txt
+sampleName=PreisslP56
+srcDir=~/scATACseq/scATACseqPipeline/src
+model=mm10
+cellData=$outDir/cellData1Preissl.txt
+```
+
+
+### 2.1.2. create directories
+```{bash eval=FALSE}
+mkdir -p $outDir/temp
+mkdir -p $outDir/bam
+mkdir -p $outDir/peaks
+mkdir -p $outDir/fastq
+mkdir -p $outDir/fastqCombined
+```
+
+
+### 2.1.3. set model specific parameters for  mm10 
+these should be set specific to your system
+```{bash eval=FALSE} 
+export genomeBowtie=/proj/seq/data/MM10_UCSC/Sequence/Bowtie2Index/genome
+export genomeMacs2=mm;
+export blacklistFile=~/scATACseq/scATACseqPipeline/data/blacklist/ENCFF547MET.bed.gz
+export genomeBedtools=/proj/seq/data/MM10_UCSC/Sequence/Chromosomes
+```
+
+
+### 2.1.4. load modules
+below is an example, but this will need to be customized so that calls to dependencies are set to PATH
+```{bash eval=FALSE}
+module add sratoolkit
+module add cutadapt
+module add bowtie2
+module add samtools
+export picardPath=~/applications/picard/build/libs
+module add macs/2016-02-15
+module add bedtools
+```
+
+
+## 2.2. Download fastq files for toy example
+```{bash eval=FALSE}
+SRRNames=( $( cat $SRRFile ) )
+fastq-dump "${SRRNames[@]}" --split-files -O $outDir/fastqCombined --gzip
+``` 
+
+## 2.2.1. Split the combined fastq into individual fastq files by cell
+This is necessary becasue with combinatorial barcode technology, the fastq contains all cells.  Preissl provides demultiplexed fastq files, meaning that the barcode combination is written in the sample name of each fastq entry.  Below is a call to our python script used to split the fastq to individual cells.  It assumes the fastq is demultiplexed.
+```{bash eval=FALSE}
+for read in R1 R2
+do
+sbatch $homeDir/src/splitCells.py \
+  --inputFile $outDir/fastqCombined/$sampleName.$read.fastq.gz \
+  --outputDir $outDir \
+  --sampleName $sampleName.$read \
+  --cellIDFile $cellIDFile 
+done
+```
+
+## 2.3. Align reads
+- cut adapters 
+- align 
+- sam to bam
+- sort
+- Add read group and index
+- mark duplicates
+- remove mitochondrial, unmapped and chr Y
+- adjust for Tn5 insertion
+- alignment quality >= 30
+- index
+
+```{bash eval=FALSE}
+for cellID in "${cellIDs[@]}"
+do
+  $srcDir/fastqToBam.sh \
+    -c $cellID  \
+    -s $sampleName \
+    -o $outDir \
+    -g $genomeBowtie
+done
+```
+
+
+## 2.4. Call Peaks
+- call peaks (p < 0.01)
+- filter blacklist
+
+```{bash eval=FALSE}
+$srcDir/callPeaks.sh \
+  -s $sampleName \
+  -o $outDir \
+  -g $genomeBedtools \
+  -l $blacklistFile \
+  -q $genomeMacs2
+```
+
+# 3. Destin
+
+## 3.1. Load Destin R package
+```{r message=FALSE, warning=FALSE}
+#install.packages("~/scATACseq/scATACseqPipeline/destin", repos = NULL, type = "source")
+#install.packages("~/Documents/gitRepos/scATACseqPipeline/destin", repos = NULL, type = "source")
+library(destin, quietly = T)
+```
+
+
+## 3.2. set parameters
+```{r}
+sampleName = "PreisslP56"
+#outDir = "~/scATACseq/pipelinePractice/PreisslP56"
+outDir = "~/Documents/gitRepos/scATACseqPipeline/practice/PreisslP56"
+cellDataFile = file.path(outDir, "cellData1Preissl.txt")
+model = "mm10"
+```
+
+
+## 3.3. create RSE from bam and peaks
+```{r}
+bamDir = file.path(outDir, "bam")
+peaksDir = file.path(outDir, "peaks")
+bedFile = file.path(peaksDir, 
+    paste0(sampleName, "_peaks.blacklist_removed.narrowPeak"))
+
+extraCols_narrowPeak <- c(signalValue = "numeric", pValue = "numeric",
+                          qValue = "numeric", peak = "integer")
+bedData = import(bedFile, format = "BED",
+               extraCols = extraCols_narrowPeak)
+
+bamFiles = dir( bamDir, pattern = "final.bam" )
+bamFiles = bamFiles[!grepl("bai", bamFiles)]
+
+rse = createRSE(bamDir, bamFiles, bedData)
+```
+
+
+## 3.4. append experimental information if available
+```{r}
+cellData = fread(cellDataFile) 
+colMerged = merge(rse@colData, cellData, by.x = "cellID", by.y = "Run")
+colData(rse) = colMerged 
+```
+
+## 3.5. annotate regions
+```{r}
+#This large file must be downloaded
+DHSfile = system.file("annotation/encode", 
+                      paste0("DHS", model, ".Rdata"), 
+                      package="destin")
+
+rse = annotateRSE(rse, model, DHSfile)
+```
+
+## 3.6. QC
+```{r}
+rse = doQC(rse)
+```
+
+## 3.7. Determine number of clusters
+```{r}
+set.seed(10)
+clusterEst = estimateNClusters(rse,   clusterVec = 1:5)
+qplot(data = clusterEst$logLikes, x = nClusters, y = logLike) 
+```
+
+## 3.8. Destin
+```{r warning=FALSE}
+nClusters = clusterEst$nClustersEstimate
+PCrange = 3:10
+TSSWeightsList = list(c(1,2), c(1,1.5), c(1,1.25), c(1,1))
+DHSWeightsList = list(c(1,1), c(1,2), c(1,3), c(1,5))
+results = destinGrid (rse, sampleName, 
+            PCrange = PCrange,
+            TSSWeightsList = TSSWeightsList,
+            DHSWeightsList = DHSWeightsList,
+            nClusters = nClusters)
+results
+```
+
+
+## 3.9. Differential Accessibility
+Calculate differential Accessibility
+```{r}
+rse = getDiffAccess(rse, clusterMap = results$cluster)
+```
+
+Results of differential Accessibility
+```{r}
+rowRanges(rse)[order(rowRanges(rse)$pValsCor_1, decreasing = F)][1:10, c("feature", "pValsCor_1", "log2FC_1")] 
+
+rowRanges(rse)[order(rowRanges(rse)$pValsCor_2, decreasing = F)][1:10, c("feature", "pValsCor_2", "log2FC_2")] 
+```

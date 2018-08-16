@@ -1,0 +1,13 @@
+data/Preissl/temp/
+**slurm**
+data/Preissl/bam
+data/Preissl/cells
+data/Preissl/peaks
+data/Buenrostro/temp
+data/Buenrostro/bam
+data/Buenrostro/peaks
+data/Buenrostro/fastq
+data/Preissl/fastq
+.DS_Store
+practice
+destin/inst/annotation/encode

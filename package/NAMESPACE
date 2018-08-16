@@ -1,0 +1,22 @@
+export(annotateRSE,
+  createRSE,
+  destinGrid,
+  getDestin,
+  getLogLike,
+  dmultFast,
+  getElbow,
+  estimateNClusters,
+  getDiffAccess,
+  doQC
+)
+
+import(
+  ChIPpeakAnno, 
+  data.table, 
+  GenomicAlignments, 
+  ggplot2,
+  irlba, 
+  Matrix, 
+  parallel, 
+  rtracklayer)
+

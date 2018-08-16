@@ -1,0 +1,18 @@
+Package: destin
+Type: Package
+Title: Apply clustering algorithms to identify cell type in scATAC data
+Version: 1.0.0
+Author: Gene Urrutia
+Maintainer: Gene Urrutia <urrutia@email.unc.edu>
+Description: Apply clustering algorithms to identify cell type in scATAC data
+License: GPL-2
+Depends: R (>= 3.4.3),
+ ChIPpeakAnno, 
+ data.table, 
+ GenomicAlignments,
+ ggplot2,
+ irlba, 
+ Matrix, 
+ parallel, 
+ rtracklayer
+
