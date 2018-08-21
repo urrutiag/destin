@@ -24,11 +24,11 @@
   \item{ nClusters }{
     nClusters as calculated by \code{\link{estimateNClusters} } }
   \item{ nCores }{
-    number of CPU cores to use for parallel computing } }
+    number of CPU cores to use for parallel computing } 
   \item{ writeOut }{
-    option to write results to disk } }
+    option to write results to disk } 
   \item{ outDir }{
-    if writeOut is set to TRUE, this is the destination directory, current working directory by default } }
+    if writeOut is set to TRUE, this is the destination directory, current working directory by default } 
 }
 
 \value{

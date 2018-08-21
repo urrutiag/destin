@@ -33,15 +33,10 @@ getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1),
       kmeans(projectionNorm, centers = nClusters, nstart = 100)
     )
     if (class(kfit) == "try-error") return (NULL)
-    purity = sum( apply(table(kfit$cluster, rse$cell_type), 1, max) ) / ncol(rse)
     logLike =  getLogLike(countMatOG, kfit$cluster)
-    #if (doLogLikeOG) { logLikeOG =  getLogLike(countMatOG, kfit$cluster) } else {logLikeOG = NA }
     return(list (summary = data.frame(nPCs = myNPC,
-                                      #nPeaksNominal = nPeaks,
                                       nPeaksActual = nrow(X),
-                                      #pValCutoff = pValCutoff,
-                                      purity = purity,
-                                      logLike = logLike),
+                                     logLike = logLike),
                  cluster = data.frame(cellID = rse$cellID,
                                       cluster = kfit$cluster)
     ))
@@ -85,6 +80,7 @@ dmultFast = function(x, prob){
   logLike = lgamma(N + 1) + sum(log(prob[x == 1]))
   return( logLike )
 }
+
 
 ### QC ------------------------------------------------------------
 doQC = function(rse){

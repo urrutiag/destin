@@ -16,7 +16,7 @@ getDiffAccess(rse, clusterMap, nCores = NULL)
     data.frame of cluster identity (cellID and cluster) as output by 
     \code{\link{destinGrid} }  }
    \item{ nCores }{
-    number of CPU cores to use for parallel computing } }
+    number of CPU cores to use for parallel computing } 
 }
 
 \value{

@@ -22,7 +22,7 @@ rse = createRSE(bamDir, bamFiles, bedData)
 }
 
 \value{
-ranged summarized experiment containing region by cell accessiblity matrix, region data, and cell data.}
+ranged summarized experiment containing region by cell accessiblity matrix, region data, and cell data.
 }
 
 \author{

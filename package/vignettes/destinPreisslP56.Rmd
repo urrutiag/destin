@@ -216,8 +216,11 @@ cluster 2: microglia and astrocytes
 cluster 3: excitatory neurons
 cluster 4: oligodendrocytes
 cluster 5: inhibitory neuron
+
+
 ```{r}
-table(results$cluster$cluster, rse$cell_type)
+clusterTable = table(results$cluster$cluster, rse$cell_type)
+clusterTable
 ```
 
 

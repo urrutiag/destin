@@ -9,14 +9,13 @@
 \usage{
 getLogLike(countMat, cluster)
 }
-    \arguments{
-      \item{ countMat }{
-        accessibility matrix  (region by cell)
-      }
-      \item{ cluster }{
-        vector of cluster membership matching the cells of the accessibility matrix 
-        }
-    }
+\arguments{
+  \item{ countMat }{
+    accessibility matrix  (region by cell)
+  }
+  \item{ cluster }{
+    vector of cluster membership matching the cells of the accessibility matrix 
+  }
 }
 \value{
   Log likelihood of a clustering result based on multinomial model

@@ -51,7 +51,7 @@ export genomeBedtools=/proj/seq/data/MM10_UCSC/Sequence/Chromosomes
 
 
 ### 2.1.4. load modules
-below is an example, but this will need to be customized so that calls to dependencies are set to PATH
+below is an example, but this will need to be customized so that calls to dependencies are included in your $PATH
 ```{bash eval=FALSE}
 module add sratoolkit
 module add cutadapt
@@ -145,6 +145,7 @@ rse = createRSE(bamDir, bamFiles, bedData)
 
 
 ## 3.4. append experimental information if available
+in this example we append the SRA Run table from SRA
 ```{r}
 cellData = fread(cellDataFile) 
 colMerged = merge(rse@colData, cellData, by.x = "cellID", by.y = "Run")
@@ -152,19 +153,19 @@ colData(rse) = colMerged
 ```
 
 ## 3.5. annotate regions
-This DHS file must be downloaded
+Annotate the ranges with TSS distance and DHS frequency 
 ```{r}
-DHSfile = file.path("~/Dropbox/Gene_shared/scATACseq/destin", 
-                      paste0("DHS", model, ".Rdata"))
 rse = annotateRSE(rse, model, DHSfile)
 ```
 
 ## 3.6. QC
+Destin begins with quality control, retaining chromatin regions accessible in at least 5 cells, and retaining cells with total number of chromatin accessible regions within 3 standard deviations from median (robustly calculated using median absolute deviations).
 ```{r}
 rse = doQC(rse)
 ```
 
 ## 3.7. Determine number of clusters
+We calculate the number of clustes using the model-based systematic elbow.  Here we find 2 clusters.
 ```{r}
 set.seed(10)
 clusterEst = estimateNClusters(rse,   clusterVec = 1:5)
@@ -172,6 +173,7 @@ qplot(data = clusterEst$logLikes, x = nClusters, y = logLike)
 ```
 
 ## 3.8. Destin
+We run Destin with default settings aside from lowering the number of principle components (since we only have 17 cells post-QC).  Optimal tuning parameters for the toy example are displayed in the summary: TSS weights (1, 2), higher weight to distal regulatory elements; DHS weights (1, 1), unweighted DHS frequency; and 3 principle components.
 ```{r warning=FALSE}
 nClusters = clusterEst$nClustersEstimate
 PCrange = 3:10
@@ -185,14 +187,22 @@ results = destinGrid (rse, sampleName,
 results
 ```
 
+Since Buenrostro et al. provided cell labels, we can compute cluster purity
+```{r}
+clusterTable = table(results$cluster$cluster, rse$cell_type)
+purity = sum( apply(clusterTable, 1, max) ) / sum(clusterTable)
+clusterTable
+paste0("purity = ", purity)
+```
+
 
 ## 3.9. Differential Accessibility
-Calculate differential Accessibility
+Calculate differential accessibility
 ```{r}
 rse = getDiffAccess(rse, clusterMap = results$cluster)
 ```
 
-Results of differential Accessibility
+Results of differential accessibility (top 10 p-values per cluster)
 ```{r}
 rowRanges(rse)[order(rowRanges(rse)$pValsCor_1, decreasing = F)][1:10, c("feature", "pValsCor_1", "log2FC_1")] 
 

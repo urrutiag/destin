@@ -43,10 +43,15 @@ createRSE = function(bamDir, bamFiles, bedData){
 
 annotateRSE = function(rse, model, DHSfile){
   
+
+  DHSfile = system.file(
+    file.path("annotation/encode", 
+              paste0("DHS", model, ".Rdata")), 
+    package = "destin")
+  
   load(DHSfile)
-  dhsRanges = DHSobject$genomeRanges
-  regionIndex = findOverlaps(rowRanges(rse), dhsRanges, select="first")
-  rowRanges(rse)$DHSsum = DHSobject$sumDHS[regionIndex] 
+  regionIndex = findOverlaps(rowRanges(rse), DHSranges, select="first")
+  rowRanges(rse)$DHSsum = DHSranges$DHSfrequency[regionIndex]
   
   if ( model == "hg19" ) { 
     data(TSS.human.GRCh37)
