@@ -81,10 +81,12 @@ Output: cluster membership, differential accessibility
 ## Example Workflows
 
 -Buenrostro mouse cells, Fluidigm microfluidic technology 
-[html](https://rawgit.com/urrutiag/destin/master/destin/vignettes/destin.html)
-[markdown](https://github.com/urrutiag/destin/blob/master/destin/vignettes/destin.Rmd)
+[html](https://rawgit.com/urrutiag/destin/master/destin/vignettes/destinBuenrostroMouse.html)
+[markdown](https://github.com/urrutiag/destin/blob/master/destin/vignettes/destinBuenrostroMouse.Rmd)
 
 -Preissl P56 forebrain mouse cells, combinatorial barcode technology
+[html](https://rawgit.com/urrutiag/destin/master/destin/vignettes/destinPreisslP56.html)
+[markdown](https://github.com/urrutiag/destin/blob/master/destin/vignettes/destinPreisslP56.Rmd)
 
 ## Citations
 
