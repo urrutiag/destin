@@ -7,15 +7,13 @@ Add region annotation
 Adds region annotation to a ranged summarized experiment. Annotation includes distance to transcription start site, annotation based on the distance, and mean accessibility accross a refererence set of DNase hypersensitivity data. 
 }
 \usage{
-annotateRSE(rse, model, DHSfile)
+annotateRSE(rse, model)
 }
 \arguments{
     \item{ rse }{
     ranged summarized experiment containing region by cell accessiblity matrix, region data, and cell data}
     \item{ model }{
     model used for read alignment. hg19 or mm10 supported }
-    \item{ DHSfile }{
-    path to reference DNAse hypersensitivity accessibility file }
 }
 
 \value{
@@ -28,11 +26,7 @@ Ranged summarized experiment containing row ranges with annotated regions.  Anno
 \examples{
 library(destin)
 
-DHSfile = system.file("annotation/encode", 
-                      paste0("DHS", model, ".Rdata"), 
-                      package="destin")
-
-rse = annotateRSE(rse, model, DHSfile)
+rse = annotateRSE(rse, model)
 
 }
 \keyword{ package }

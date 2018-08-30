@@ -6,7 +6,11 @@ while getopts c:s:o:g: opt; do
     c ) cellID=$OPTARG  ;;
     s ) sampleName=$OPTARG  ;;
     o ) outDir=$OPTARG ;;
-    g ) genomeBowtie=$OPTARG
+    g ) genomeBowtie=$OPTARG ;;
+    w ) adaptor1=$OPTARG ;;
+    x ) adaptor2=$OPTARG ;;
+    y ) adaptor3=$OPTARG ;;
+    z ) adaptor4=$OPTARG 
   esac
 done
 
@@ -29,8 +33,8 @@ myFastqs=( $(ls $fastqDir | grep $cellID) )
 
 #trim adaptor
 cutadapt --minimum-length=20  \
-  -A CTGTCTCTTATACACA -a CTGTCTCTTATACACA -G GATGTGTATAAGAGACAG \
-  -g GATGTGTATAAGAGACAG -o $tempDir/$barcodeSampleName.R1.trimmed.fastq.gz -p \
+  -A $adaptor1 -a $adaptor2 -G $adaptor3 \
+  -g $adaptor4 -o $tempDir/$barcodeSampleName.R1.trimmed.fastq.gz -p \
   $tempDir/$barcodeSampleName.R2.trimmed.fastq.gz \
   $fastqDir/${myFastqs[0]} \
   $fastqDir/${myFastqs[1]}

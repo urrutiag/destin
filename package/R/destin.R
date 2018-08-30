@@ -83,10 +83,11 @@ dmultFast = function(x, prob){
 
 
 ### QC ------------------------------------------------------------
-doQC = function(rse){
-  rse = rse[Matrix::rowSums(assay(rse)) >= 5, ]
+
+doQC = function(rse, regionSumCutoff = 5, cellSumCutoffSDs = 3){
+  rse = rse[Matrix::rowSums(assay(rse)) >= regionSumCutoff, ]
   cellSum = Matrix::colSums(assay(rse))
-  cutoffs = 2 ^ ( median(log2(cellSum)) + c(-3,3)*mad(log2(cellSum)) )
+  cutoffs = 2 ^ ( median(log2(cellSum)) + c(-1,1)*cellSumCutoffSDs*mad(log2(cellSum)) )
   rse = rse[ , cellSum > cutoffs[1] & cellSum < cutoffs[2] ]
   cellSumPostQC = Matrix::colSums(assay(rse))
   colData(rse)$cellSumPostQC = cellSumPostQC

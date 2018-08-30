@@ -6,7 +6,7 @@ output:
     toc: true
 ---
 
-For this example we begin at this step 3.1. but skip 3.3 through 3.5 for due to large file sizes.  Previous steps are described for reference.
+For this example we begin at this step 3.1. but skip 3.3 through 3.5 due to large file sizes.  Previous steps are described for reference.
 
 # 1. Data
 - P56 forebrain mouse scATAC-seq from Preissl et al.
@@ -17,6 +17,14 @@ For this example we begin at this step 3.1. but skip 3.3 through 3.5 for due to 
 - original fastq files contain all 3034 cells combined
 
 # 2. Bioinformatics pipeline
+
+input: fastq files  
+output: bam files and peaks bed file
+
+install the bioinformatics pipeline from github
+```{bash eval=FALSE}
+git clone https://github.com/urrutiag/destin.git
+```
 
 ## 2.1. Set up parameters, paths, and directories
 

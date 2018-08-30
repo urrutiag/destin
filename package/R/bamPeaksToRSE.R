@@ -41,9 +41,8 @@ createRSE = function(bamDir, bamFiles, bedData){
 }
 
 
-annotateRSE = function(rse, model, DHSfile){
+annotateRSE = function(rse, model){
   
-
   DHSfile = system.file(
     file.path("annotation/encode", 
               paste0("DHS", model, ".Rdata")), 

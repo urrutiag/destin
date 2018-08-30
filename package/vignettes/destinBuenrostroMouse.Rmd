@@ -11,12 +11,15 @@ For this example we begin at this step 3.1. Load Destin R package.  Previous ste
 # 1. Data
 - Mouse scATAC-seq from Buenrostro et al. 
 - GEO accession: GSE65360  
-- 2 cell types
+- 2 cell types (hematopoietic cells, mouse embryonic stem cells)
 - Fluidigm microfluidics platform
 - 192 cells (20 in the Destin toy example)
 - original fastq files correspond to individual cells
 
 # 2. Bioinformatics pipeline
+
+input: fastq files  
+output: bam files and peaks bed file
 
 install the bioinformatics pipeline from github
 ```{bash eval=FALSE}
@@ -112,7 +115,7 @@ which bowtie2
 ```
 
 
-## 2.2. Download fastq files for toy example
+## 2.2. (Optional) Download fastq files for toy example
 
 This is an optional step, if you wish to download fastq files from the SRA repository.
 The first line reads the SRRFile contents into an array.  The next line downloads those files.  --split-files tells sratoolkit that the read are paired and we desire 2 files per cell/sample.  This pipeline assumes paired reads.
@@ -141,9 +144,18 @@ Overview
 - alignment quality >= 30
 - index
 
-We first cut Illumina adaptors using cutadapt with –minimum length set to 20. Reads are aligned to respective genome using bowtie2 with setting X2000 to ensure paired reads are within 2kb of one another. Samtools is used to covert to bam format. Picard tools is then used to perform a series of tasks: SortSam to sort; AddOrReplaceReadGroups to add read groups and index; MarkDuplicates to mark and remove duplicates; and BuildBamIndex to index reads. Samtools is used to remove mitochondrial, unmapped, and chromosome Y reads.  
+We first cut Illumina adaptors using cutadapt with –minimum length set to 20. parameters w, x, y, z refer to cutadapt inputs.  In this experiment Illumina adaptors were used, but the sequences can be adapted to a different experiment. See https://cutadapt.readthedocs.io/en/stable/guide.html for further info. 
+
+-w refers to cutadapt input ADAPTER_FWD "-A"
+-x refers to cutadapt input ADAPTER_REV "-a"
+-y refers to cutadapt input second ADAPTER_FWD "-G"
+-z refers to cutadapt input second ADAPTER_REV "-g"
+
+Reads are aligned to respective genome using bowtie2 with setting X2000 to ensure paired reads are within 2kb of one another. Samtools is used to covert to bam format. Picard tools is then used to perform a series of tasks: SortSam to sort; AddOrReplaceReadGroups to add read groups and index; MarkDuplicates to mark and remove duplicates; and BuildBamIndex to index reads. Samtools is used to remove mitochondrial, unmapped, and chromosome Y reads.  
 
 Next, due to Tn5 insertion, the starting position of forward reads is adjusted +4, and the end position of reverse reads is adjusted -5. This is performed using a custom awk command. Only aligned reads with map quality over 30 are retained. Finally, aligned reads are indexed by picard SortSam and indexed by samtools.
+
+
 
 ```{bash eval=FALSE}
 SRRNames=( $( cat $SRRFile ) )
@@ -153,7 +165,11 @@ do
     -c $cellID  \
     -s $sampleName \
     -o $outDir \
-    -g $genomeBowtie
+    -g $genomeBowtie \
+    -w CTGTCTCTTATACACA \
+    -x CTGTCTCTTATACACA \
+    -y GATGTGTATAAGAGACAG \
+    -z GATGTGTATAAGAGACAG
 done
 ```
 
@@ -170,12 +186,13 @@ Overview
 
 Peaks are called by MACS2 using parameters: –nomodel -p 0.01. Thus, only peaks with p-value below 0.01 are retained. Peaks are filtered using an ENCODE annotated blacklist file mainly consisting of low-mappability regions and repeat regions: "ENCFF547MET.bed" for mm10 and "wgEncodeDacMapabilityConsensusExcludable.bed" for hg19. 
 
+
 ```{bash eval=FALSE}
 $srcDir/callPeaks.sh \
   -s $sampleName \
   -o $outDir \
   -l $blacklistFile \
-  -q $genomeMacs2
+  -q $genomeMacs2 
 ```
 
 # 3. Destin
@@ -189,7 +206,7 @@ Specifically, Destin incorporates biological weights for chromatin accessible re
 ## 3.1. Load Destin R package
 if you have already installed the github repository, you can install the R package from the local copy
 ```{r message=FALSE, warning=FALSE}
-#install.packages("~/Documents/gitRepos/destin/package", repos = NULL, type = "source")
+install.packages("~/Documents/gitRepos/destin/package", repos = NULL, type = "source")
 ```
 
 if you have not already installed the github repository, install the R package directly from github
@@ -200,7 +217,7 @@ devtools::install_github("urrutiag/destin/package")
 
 load the package
 ```{r message=FALSE, warning=FALSE}
-#library(destin, quietly = T)
+library(destin, quietly = T)
 ```
 
 
@@ -211,7 +228,7 @@ load the package
 - cellDataFile is the path to a sample description table with each row corresponding to a cell
 - model is selected as hg19 or mm10
 
-```{r eval=FALSE}
+```{r}
 sampleName = "BuenrostroMouse"
 outDir = "~/Documents/gitRepos/destin/practice/BuenrostroMouse"
 cellDataFile = file.path(outDir, "SraRunTableBuenrostroMouse.txt")
@@ -221,9 +238,14 @@ model = "mm10"
 
 ## 3.3. Create RSE from bam and peaks
 
-input: indexed bam files (one bam per cell), peaks file  
-output: ranged summarized experiment
-```{r eval=FALSE}
+inputs: indexed bam files (one bam per cell), peaks file  
+output: ranged summarized experiment containing:
+
+- colData which describes the cells
+- rowRanges which describes the peaks
+- assay which is the binary chromatin accessibility matrix
+
+```{r}
 bamDir = file.path(outDir, "bam")
 peaksDir = file.path(outDir, "peaks")
 bedFile = file.path(peaksDir, 
@@ -243,12 +265,12 @@ rse = createRSE(bamDir, bamFiles, bedData)
 here is a description of the ranged summarized experiment  
 
 column data is a description of the cells
-```{r eval=FALSE}
+```{r}
 colData(rse)
 ```
 
 rowRanges is a description of the peaks
-```{r eval=FALSE}
+```{r}
 rowRanges(rse)
 ```
 
@@ -256,24 +278,21 @@ assay is the binary chromatin accessibility matrix in sparse matrix format
 
 - rows are peaks 
 - columns are cells
-```{r eval=FALSE}
+
+```{r}
 assay(rse)[1:20,1:20]
 ```
 
 
 
 ## 3.4. (optional) Append experimental information 
-in this example we append the SRA Run table from SRA
-```{r eval=FALSE}
+in this example we append the SRA Run table from SRA to the colData
+```{r}
 cellData = fread(cellDataFile) 
 colMerged = merge(rse@colData, cellData, by.x = "cellID", by.y = "Run")
 colData(rse) = colMerged 
 ```
 
-colData now contains additional experimental data
-```{r eval=FALSE}
-colData(rse)[1,]
-```
 
 ## 3.5. Annotate regions
 Annotate the ranges with TSS distance and DHS frequency 
@@ -281,7 +300,6 @@ Annotate the ranges with TSS distance and DHS frequency
 TSS distance:
 
 Distance to transcription start site is annotated using R function annotatePeakInBatch from the ChIPpeakAnno package. Data set ’TSS.human.GRCh37’ is used for model hg19 and ’TSS.mouse.GRCm38’ is used for model mm10. A promoter is defined as distance >=2kb and <= 1kb. Otherwise the chromatin accessible region is defined as distal regulatory element.
-
 
 DHS frequency:
 
@@ -293,28 +311,37 @@ For mouse reference, we used search terms: "bed broadpeaks", "Mus musculus", "DN
 
 For processing we created a template representing the entire genome in 500bp bins using R functions tile and GRanges from package GenomicRanges. This was followed by GenomicRanges function overlapsAny to assign the files to the template. Overlaps were averaged across all files of same type (cell line or tissue), so that no type would be overrepresented. Finally, overlaps were averaged across all types.
 
-```{r eval=FALSE}
-rse = annotateRSE(rse, model, DHSfile)
+```{r}
+rse = annotateRSE(rse, model)
 ```
+
 
 ## 3.6. QC
-Destin begins with quality control, retaining chromatin regions accessible in at least 5 cells, and retaining cells with total number of chromatin accessible regions within 3 standard deviations from median (robustly calculated using median absolute deviations).
-```{r eval=FALSE}
-rse = doQC(rse)
+
+Destin begins with quality control, retaining chromatin regions accessible in at least 5 cells, and retaining cells with total number of chromatin accessible regions within 3 standard deviations from median (robustly calculated using median absolute deviations).  These default parameters can be modified if desired.
+
+```{r}
+rse = doQC(rse, regionSumCutoff = 5, cellSumCutoffSDs = 3)
 ```
 
+
 ## 3.7. Determine number of clusters
-We calculate the number of clustes using the model-based systematic elbow.  Here we find 2 clusters.
-```{r eval=FALSE}
+
+Destin uses an unsupervised model-based likelihood to estimate number of clusters. Like WCSSE, the likelihood is non-decreasing with increasing number of clusters.  We fit the model log-likelihood as a linear spline function of number of clusters with a single knot. The knot placement which results in the best fit (lowest sum of squared errors) is selected as number of clusters.
+
+We search a space of 1 to 5 number of clusters (user-modifiable). Here we find 2 clusters.
+```{r}
 set.seed(10)
 clusterEst = estimateNClusters(rse,   clusterVec = 1:5)
 qplot(data = clusterEst$logLikes, x = nClusters, y = logLike) 
 ```
 
-## 3.8. Destin
-We run Destin with default settings aside from lowering the number of principle components (since we only have 17 cells post-QC).  Optimal tuning parameters for the toy example are displayed in the summary: TSS weights (1, 2), higher weight to distal regulatory elements; DHS weights (1, 1), unweighted DHS frequency; and 3 principle components.
-```{r eval=FALSE} 
-#warning=FALSE 
+## 3.8. Clustering cells
+
+For each combination of TSS distance weights, DHS frequency weights, and number of PCs, cell type clustering is performed via k-means. The likelihood is calculated according to the multinomial model, and the clustering result producing the highest multinomial likelihood is selected as the final clustering result.
+
+In this example, we run Destin with default settings aside from lowering the number of principle components (since we only have 17 cells post-QC).  Optimal tuning parameters for the toy example are displayed in the summary: TSS weights (1, 2), higher weight to distal regulatory elements; DHS weights (1, 1), unweighted DHS frequency; and 3 principle components.
+```{r warning=FALSE } 
 nClusters = clusterEst$nClustersEstimate
 PCrange = 3:10
 TSSWeightsList = list(c(1,2), c(1,1.5), c(1,1.25), c(1,1))
@@ -328,7 +355,7 @@ results
 ```
 
 Since Buenrostro et al. provided cell labels, we can compute cluster purity
-```{r eval=FALSE}
+```{r}
 clusterTable = table(results$cluster$cluster, rse$cell_type)
 purity = sum( apply(clusterTable, 1, max) ) / sum(clusterTable)
 clusterTable
@@ -337,13 +364,17 @@ paste0("purity = ", purity)
 
 
 ## 3.9. Differential Accessibility
-Calculate differential accessibility
-```{r eval=FALSE}
+
+Destin performs differential chromatin accessibility testing via the Fisher test, generating a chromatin accessibility profile for each cluster. We compare each cell type to each other in a 1 vs. all others comparison, treating all chromatin accessible regions independently.
+
+The output includes a genetic feature, Bonferroni corrected p-value and log2 fold change for each chromatin accessible region.
+
+```{r}
 rse = getDiffAccess(rse, clusterMap = results$cluster)
 ```
 
 Results of differential accessibility (top 10 p-values per cluster)
-```{r eval=FALSE}
+```{r}
 rowRanges(rse)[order(rowRanges(rse)$pValsCor_1, decreasing = F)][1:10, c("feature", "pValsCor_1", "log2FC_1")] 
 
 rowRanges(rse)[order(rowRanges(rse)$pValsCor_2, decreasing = F)][1:10, c("feature", "pValsCor_2", "log2FC_2")] 
