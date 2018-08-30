@@ -6,7 +6,7 @@ output:
     toc: true
 ---
 
-For this example we begin at this step 3.1. but skip 3.3 through 3.5 due to large file sizes.  Previous steps are described for reference.
+For this example we begin at this step 3.1. but skip 3.3 through 3.4 due to large file sizes. We begin again at step 3.4.1. Load rse. Previous steps are described for reference.
 
 # 1. Data
 - P56 forebrain mouse scATAC-seq from Preissl et al.
@@ -26,21 +26,41 @@ install the bioinformatics pipeline from github
 git clone https://github.com/urrutiag/destin.git
 ```
 
+
 ## 2.1. Set up parameters, paths, and directories
 
-### 2.1.1. designate inputs and parameters
+The bioinformatics pipeline is displayed as an example, and not meant to be run as is.  Running it requires that the user:
+
+- sets all parameters appropriately 
+- ensures that all bioinformatics dependencies are included in the system search PATH
+- ensures directories are selected appropriately
+
+
+### 2.1.1. Designate inputs and parameters
+
+- select outDir as the directory to print all output 
+- (optionally) if you want to download files using sratoolkit, include SRRFile path
+- sampleName is used to name files and metadata
+- srcDir is the path to our bioinformatic processing scripts (.../destin/src)
+- model is selected as hg19 or mm10
+- cellData is the path to a sample description table with each row corresponding to a cell
+
 ```{bash eval=FALSE}
-outDir=~/scATACseq/pipelinePractice/PreisslP56
+outDir=~/Documents/gitRepos/destin/practice/PreisslP56
 SRRFile=$outDir/SRR_Acc_ListPreisslP56.txt
 sampleName=PreisslP56
-srcDir=~/scATACseq/scATACseqPipeline/src
+srcDir=~/Documents/gitRepos/destin/src
 model=mm10
 cellData=$outDir/cellData1Preissl.txt
 ```
 
 
-### 2.1.2. create directories
+### 2.1.2. Create directories
+
+This is the output tree for the bioinformatics processing pipeline.  This should not be customized. The only selectable parameter is the outDir, defined in the last step
+
 ```{bash eval=FALSE}
+mkdir -p $outDir
 mkdir -p $outDir/temp
 mkdir -p $outDir/bam
 mkdir -p $outDir/peaks
@@ -49,18 +69,35 @@ mkdir -p $outDir/fastqCombined
 ```
 
 
-### 2.1.3. set model specific parameters for  mm10 
-these should be set specific to your system
+### 2.1.3. Set model specific parameters for  mm10 
+
+Here we select the path to model-specific files, these must be set specific to your system
+
+- genomeBowtie is the path to the indexed genome for bowtie2
+- genomeMacs2 is the model for MACS2 peak caller: either mm (mouse) or hs (human)
+- blacklistFile is the path to file containing peaks to exclude: either ENCFF547MET.bed.gz (mouse) or ENCFF001TDO.bed.gz (human)
+
 ```{bash eval=FALSE} 
 export genomeBowtie=/proj/seq/data/MM10_UCSC/Sequence/Bowtie2Index/genome
 export genomeMacs2=mm;
-export blacklistFile=~/scATACseq/scATACseqPipeline/data/blacklist/ENCFF547MET.bed.gz
-export genomeBedtools=/proj/seq/data/MM10_UCSC/Sequence/Chromosomes
+export blacklistFile=~/Documents/gitRepos/destin/data/blacklist/ENCFF547MET.bed.gz
 ```
 
 
-### 2.1.4. load modules
-below is an example, but this will need to be customized so that calls to dependencies are set to PATH
+### 2.1.4. Ensure that dependencies are in system search PATH
+
+In order for the bioninformatics pipeline to run, several dependencies must be included in the system search PATH:
+
+- sratoolkit (optional if you wish to dowload fastq files from SRA)
+- cutadapt
+- bowtie2 
+- samtools 
+- macs/2016-02-15 (latest version)
+- bedtools
+
+additionally, we set "picardPath", the system specific path to picard, manually
+
+below is an example when using a high performance cluster, but this will need to be customized to your system.   
 ```{bash eval=FALSE}
 module add sratoolkit
 module add cutadapt
@@ -71,20 +108,40 @@ module add macs/2016-02-15
 module add bedtools
 ```
 
+Alternatively, manually add your system specific path to the executable to the system search PATH, as below
+```{bash eval=FALSE}
+export PATH=/nas/longleaf/apps/bowtie2/2.3.4.1/bin:$PATH
+```
 
-## 2.2. Download fastq files for toy example
+To ensure you have set up the path to bowtie2 correctly, type "which bowtie2" and the result should be your system specific path to the executable
+```{bash eval=FALSE}
+which bowtie2
+/nas/longleaf/apps/bowtie2/2.3.4.1/bin/bowtie2
+```
+
+
+## 2.2. (Optional) Download fastq files for toy example
+
+This is an optional step, if you wish to download fastq files from the SRA repository.
+The first line reads the SRRFile contents into an array.  The next line downloads those files.  --split-files tells sratoolkit that the read are paired and we desire 2 files per cell/sample.  This pipeline assumes paired reads.
+
 ```{bash eval=FALSE}
 SRRNames=( $( cat $SRRFile ) )
 fastq-dump "${SRRNames[@]}" --split-files -O $outDir/fastqCombined --gzip
 ``` 
 
-## 2.2.1. Split the combined fastq into individual fastq files by cell
-This is necessary becasue with combinatorial barcode technology, the fastq contains all cells.  Preissl provides demultiplexed fastq files, meaning that the barcode combination is written in the sample name of each fastq entry.  Below is a call to our python script used to split the fastq to individual cells.  It assumes the fastq is demultiplexed.
+## 2.2.1. (Technology specific step) Split the combined fastq into individual fastq files by cell
+
+input: 1 pair of fastq paired read files for entire experiment
+output: individual paired fastq files separate by cell
+
+This is necessary becasue with combinatorial barcode technology, the fastq contains all cells.  Preissl et al. provide demultiplexed fastq files, meaning that the barcode combination is written in the sample name of each fastq entry.  Below is a call to our python script used to split the fastq to individual cells.  It assumes the fastq is demultiplexed.
+
 ```{bash eval=FALSE}
-for read in R1 R2
+for inputFile in $outDir/fastqCombined/$sampleName.R1.fastq.gz  $outDir/fastqCombined/$sampleName.R2.fastq.gz
 do
 sbatch $homeDir/src/splitCells.py \
---inputFile $outDir/fastqCombined/$sampleName.$read.fastq.gz \
+--inputFile $inputFile \
 --outputDir $outDir \
 --sampleName $sampleName.$read \
 --cellIDFile $cellIDFile 
@@ -92,6 +149,10 @@ done
 ```
 
 ## 2.3. Align reads
+ 
+input: paired-read fastq files, one pair of fastq files per cell  
+output: indexed bam files, one bam file per cell  
+
 - cut adapters 
 - align 
 - sam to bam
@@ -103,50 +164,107 @@ done
 - alignment quality >= 30
 - index
 
+We first cut Illumina adaptors using cutadapt with –minimum length set to 20. parameters w, x, y, z refer to cutadapt inputs.  In this experiment Illumina adaptors were used, but the sequences can be adapted to a different experiment. See https://cutadapt.readthedocs.io/en/stable/guide.html for further info. 
+
+-w refers to cutadapt input ADAPTER_FWD "-A"
+-x refers to cutadapt input ADAPTER_REV "-a"
+-y refers to cutadapt input second ADAPTER_FWD "-G"
+-z refers to cutadapt input second ADAPTER_REV "-g"
+
+Reads are aligned to respective genome using bowtie2 with setting X2000 to ensure paired reads are within 2kb of one another. Samtools is used to covert to bam format. Picard tools is then used to perform a series of tasks: SortSam to sort; AddOrReplaceReadGroups to add read groups and index; MarkDuplicates to mark and remove duplicates; and BuildBamIndex to index reads. Samtools is used to remove mitochondrial, unmapped, and chromosome Y reads.  
+
+Next, due to Tn5 insertion, the starting position of forward reads is adjusted +4, and the end position of reverse reads is adjusted -5. This is performed using a custom awk command. Only aligned reads with map quality over 30 are retained. Finally, aligned reads are indexed by picard SortSam and indexed by samtools.
+
+
 ```{bash eval=FALSE}
 for cellID in "${cellIDs[@]}"
 do
-$srcDir/fastqToBam.sh \
--c $cellID  \
--s $sampleName \
--o $outDir \
--g $genomeBowtie
+  $srcDir/fastqToBam.sh \
+    -c $cellID  \
+    -s $sampleName \
+    -o $outDir \
+    -g $genomeBowtie \
+    -w CTGTCTCTTATACACA \
+    -x CTGTCTCTTATACACA \
+    -y GATGTGTATAAGAGACAG \
+    -z GATGTGTATAAGAGACAG
 done
 ```
 
 
 ## 2.4. Call Peaks
-- call peaks (p < 0.01)
-- filter blacklist
+
+input: indexed bam file, one file per cell   
+output: filtered narrow_peaks.bed  
+
+Overview  
+
+- call peaks
+- filter blacklist 
+
+Peaks are called by MACS2 using parameters: –nomodel -p 0.01. Thus, only peaks with p-value below 0.01 are retained. Peaks are filtered using an ENCODE annotated blacklist file mainly consisting of low-mappability regions and repeat regions: "ENCFF547MET.bed" for mm10 and "wgEncodeDacMapabilityConsensusExcludable.bed" for hg19. 
+
 
 ```{bash eval=FALSE}
 $srcDir/callPeaks.sh \
 -s $sampleName \
 -o $outDir \
--g $genomeBedtools \
 -l $blacklistFile \
 -q $genomeMacs2
 ```
 
 # 3. Destin
 
+Destin incorporates a set of existing and novel practices regarding normalization, dimension reduction, and clustering.  Several existing and novel techniques are cast as tuning parameters which are optimized by an unsupervised model-based likelihood. 
+
+Specifically, Destin incorporates biological weights for chromatin accessible regions based on reference annotations and bulk regulomic profiles. These weights, the number of clusters, and the number of principle components are cast as tuning parameters.  Destin fits the full binary chromatin accessibility data using the multinomial distribution, providing an objective function in an unsupervised clustering context. 
+
+- 20 cells (out of 192) in this Destin toy example
+
 ## 3.1. Load Destin R package
+
+if you have already installed the github repository, you can install the R package from the local copy
+
 ```{r message=FALSE, warning=FALSE}
-#install.packages("~/Documents/gitRepos/destin/package", repos = NULL, type = "source")
+install.packages("~/Documents/gitRepos/destin/package", repos = NULL, type = "source")
+```
+
+if you have not already installed the github repository, install the R package directly from github
+```{r eval = F}
+install.packages("devtools")
+devtools::install_github("urrutiag/destin/package")
+```
+
+load the package
+```{r message=FALSE, warning=FALSE}
 library(destin, quietly = T)
 ```
 
 
-## 3.2. set parameters
+## 3.2. Set parameters
+
+- sampleName should be the same as used during the pipeline, used to identify input files
+- outDir is the home directory for input files
+- cellDataFile is the path to a sample description table with each row corresponding to a cell
+- model is selected as hg19 or mm10
+
 ```{r}
 sampleName = "PreisslP56"
 outDir = "~/Documents/gitRepos/destin/practice/PreisslP56"
-cellDataFile = file.path(outDir, "cellData1Preissl.txt")
+cellDataFile = file.path(outDir, "cellDataPreissl.txt")
 model = "mm10"
 ```
 
 
-## 3.3. create RSE from bam and peaks
+## 3.3. Create RSE from bam and peaks
+
+inputs: indexed bam files (one bam per cell), peaks file  
+output: ranged summarized experiment containing:
+
+- colData which describes the cells
+- rowRanges which describes the peaks
+- assay which is the binary chromatin accessibility matrix
+
 ```{r eval=FALSE}
 bamDir = file.path(outDir, "bam")
 peaksDir = file.path(outDir, "peaks")
@@ -165,14 +283,25 @@ rse = createRSE(bamDir, bamFiles, bedData)
 ```
 
 
-## 3.4. append experimental information if available
-```{r eval=FALSE}
-cellData = fread(cellDataFile) 
-colMerged = merge(rse@colData, cellData, by.x = "cellID", by.y = "Run")
-colData(rse) = colMerged 
-```
 
-## 3.5. annotate regions
+## 3.4. Annotate regions
+
+Annotate the ranges with TSS distance and DHS frequency 
+
+TSS distance:
+
+Distance to transcription start site is annotated using R function annotatePeakInBatch from the ChIPpeakAnno package. Data set ’TSS.human.GRCh37’ is used for model hg19 and ’TSS.mouse.GRCm38’ is used for model mm10. A promoter is defined as distance >=2kb and <= 1kb. Otherwise the chromatin accessible region is defined as distal regulatory element.
+
+DHS frequency:
+
+To generate the reference DNase hypersensitivity frequency map, we used the ENCODE database (Consortium et al., 2012).
+
+For human reference, we used search terms: "bed broadpeaks", "Homo sapiens", "DNase-seq", and "cell line". This resulted in 138 experiments representing 99 cell lines, all from either the John Stamatoyannopoulos lab or Gregory Crawford lab.
+
+For mouse reference, we used search terms: "bed broadpeaks", "Mus musculus", "DNase-seq", and "tissue". This resulted in 61 experiments representing 27 tissue types. All experiments were from the John Stamatoyannopoulos lab.
+
+For processing we created a template representing the entire genome in 500bp bins using R functions tile and GRanges from package GenomicRanges. This was followed by GenomicRanges function overlapsAny to assign the files to the template. Overlaps were averaged across all files of same type (cell line or tissue), so that no type would be overrepresented. Finally, overlaps were averaged across all types.
+
 ```{r eval=FALSE}
 #This large file must be downloaded
 DHSfile = system.file("annotation/encode", 
@@ -182,27 +311,69 @@ DHSfile = system.file("annotation/encode",
 rse = annotateRSE(rse, model, DHSfile)
 ```
 
-## 3.5.1. load rse
+
+## 3.4.1. Load rse
+
 For this example we begin at this step
 ```{r}
-load(file.path(outDir, "DestinP56Annotated.Rdata"))
+load(file.path(outDir, "peaks", "PreisslP56Annotated.Rdata"))
+```
+
+here is a description of the ranged summarized experiment  
+
+column data is a description of the cells
+```{r}
+colData(rse)
+```
+
+rowRanges is a description of the peaks
+```{r}
+rowRanges(rse)
+```
+
+assay is the binary chromatin accessibility matrix in sparse matrix format
+
+- rows are peaks 
+- columns are cells
+
+```{r}
+assay(rse)[1:20,1:20]
 ```
 
 
+## 3.5. (optional) Append experimental information if available
+```{r eval=FALSE}
+cellData = fread(cellDataFile) 
+colMerged = merge(rse@colData, cellData, by.x = "cellID", by.y = "Run")
+colData(rse) = colMerged 
+```
+
 ## 3.6. QC
+
+Destin begins with quality control, retaining chromatin regions accessible in at least 5 cells, and retaining cells with total number of chromatin accessible regions within 3 standard deviations from median (robustly calculated using median absolute deviations).  These default parameters can be modified if desired.
+
 ```{r}
-rse = doQC(rse)
+rse = doQC(rse, regionSumCutoff = 5, cellSumCutoffSDs = 3)
 ```
 
 ## 3.7. Determine number of clusters
+
+Destin uses an unsupervised model-based likelihood to estimate number of clusters. Like WCSSE, the likelihood is non-decreasing with increasing number of clusters.  We fit the model log-likelihood as a linear spline function of number of clusters with a single knot. The knot placement which results in the best fit (lowest sum of squared errors) is selected as number of clusters.
+
+We search a space of 1 to 20 number of clusters (user-modifiable). Here we find 5 clusters.
+
 ```{r}
 set.seed(10)
 clusterEst = estimateNClusters(rse,   clusterVec = 1:20)
 qplot(data = clusterEst$logLikes, x = nClusters, y = logLike) 
 ```
 
-## 3.8. Destin
-Previous run with default tuning parameter options estimated the optimal parameters to be 10 PCs, TSS weights (1,2) and DHS weights (1,3).  You may verify this by setting to default tuning parameter ranges, but this will take longer depending on number of cpu cores. Set nCores to an appropriate value based on your system.
+## 3.8. Clustering cells
+
+For each combination of TSS distance weights, DHS frequency weights, and number of PCs, cell type clustering is performed via k-means. The likelihood is calculated according to the multinomial model, and the clustering result producing the highest multinomial likelihood is selected as the final clustering result.
+
+A previous run with default tuning parameter options estimated the optimal parameters to be 10 PCs, TSS weights (1,2), higher weight to distal regulatory elements; and DHS weights (1,3), higher weight to rare chromatin accessible regions.  You may verify this by setting to default tuning parameter ranges, but this will take longer depending on number of cpu cores. Set nCores to an appropriate value based on your system.
+
 ```{r warning=FALSE}
 nCores = 3
 PCrange = 10:11
@@ -233,12 +404,16 @@ clusterTable
 
 
 ## 3.9. Differential Accessibility
-Calculate differential Accessibility for the first 1000 regions
+
+Destin performs differential chromatin accessibility testing via the Fisher test, generating a chromatin accessibility profile for each cluster. We compare each cell type to each other in a 1 vs. all others comparison, treating all chromatin accessible regions independently.
+
+The output includes a genetic feature, Bonferroni corrected p-value and log2 fold change for each chromatin accessible region.
+
 ```{r}
 #set nCores to an appropriate value based on your system
 nCores = 3
 rse1000 = rse[1:1000,]
-rse1000 = getDiffAccess(rse1000, clusterMap = results$cluster)
+rse1000 = getDiffAccess(rse1000, clusterMap = results$cluster, nCores = nCores)
 ```
 
 Results of differential Accessibility: clusters 1 and 2

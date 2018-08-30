@@ -11,7 +11,7 @@ getDiffAccess = function(rse, clusterMap, nCores = NULL){
   if(!is.null(nCores)){
     cl = makeCluster(nCores)
     clusterEvalQ(cl, library(Matrix))
-    clusterExport(cl, list("C", "X"))
+    clusterExport(cl, list("C", "X"), envir = environment())
   }
   
   pfcList = list()
@@ -23,7 +23,7 @@ getDiffAccess = function(rse, clusterMap, nCores = NULL){
     log2FC = log2(freqRef / freqRest)
     
     if(!is.null(nCores)){
-      clusterExport(cl, list("Cref"))
+      clusterExport(cl, list("Cref"), envir = environment())
       pVals = parSapply(cl, 1:nrow(X), function(regionIndex) {
         mat = table(Cref, X[regionIndex,])
         fish = fisher.test(mat)
