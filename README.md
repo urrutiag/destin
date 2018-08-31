@@ -9,14 +9,26 @@ This is the Jiang lab scATAC-seq processing and cell clustering pipeline.
   
 ## Installation
 
+The bioinformatic pipeline requires cloning the git repostory 
 ```bash
 git clone https://github.com/urrutiag/destin.git
 ```
 
+Running the R package requires either installing from the above git repostory locally
+```r
+install.packages("/yourLocalPath/destin/package", repos = NULL, type = "source")
+library(destin)
+```
+
+or downloading from github directly:
 ```r
 install.packages("devtools")
-devtools::install_github("urrutiag/destin/destin")
+devtools::install_github("urrutiag/destin/package")
+library(destin)
 ```
+
+
+
 
 ## Dependencies
 
