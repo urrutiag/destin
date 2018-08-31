@@ -21,8 +21,9 @@ For this example we begin at this step 3.1. Load Destin R package.  Previous ste
 input: fastq files  
 output: bam files and peaks bed file
 
-install the bioinformatics pipeline from github
+install the bioinformatics pipeline from github, where yourPathToDestinRepo is your path to the local cloned repository
 ```{bash eval=FALSE}
+cd yourPathToDestinRepo
 git clone https://github.com/urrutiag/destin.git
 ```
 
@@ -36,18 +37,18 @@ The bioinformatics pipeline is displayed as an example, and not meant to be run 
 
 ### 2.1.1. Designate inputs and parameters
 
-- select outDir as the directory to print all output 
+- select outDir as the directory to read input and print all output. In this example we use  "yourPathToDestinRepo/practice/BuenrostroMouse", where yourPathToDestinRepo is the path to your local cloned repository
 - (optionally) if you want to download files using sratoolkit, include SRRFile path
 - sampleName is used to name files and metadata
-- srcDir is the path to our bioinformatic processing scripts (.../destin/src)
+- srcDir is the path to our bioinformatic processing scripts (located locally at "yourPathToDestinRepo/src")
 - model is selected as hg19 or mm10
 - cellData is the path to a sample description table with each row corresponding to a cell
 
 ```{bash eval=FALSE}
-outDir=~/Documents/gitRepos/destin/practice/BuenrostroMouse
+outDir=yourPathToDestinRepo/practice/BuenrostroMouse
 SRRFile=$outDir/SRR_Acc_ListBuenrostroMouse.txt
 sampleName=BuenrostroMouse
-srcDir=~/Documents/gitRepos/destin/src
+srcDir=yourPathToDestinRepo/src
 model=mm10
 cellData=$outDir/SraRunTableBuenrostroMouse.txt
 ```
@@ -72,12 +73,12 @@ Here we select the path to model-specific files, these must be set specific to y
 
 - genomeBowtie is the path to the indexed genome for bowtie2
 - genomeMacs2 is the model for MACS2 peak caller: either mm (mouse) or hs (human)
-- blacklistFile is the path to file containing peaks to exclude: either ENCFF547MET.bed.gz (mouse) or ENCFF001TDO.bed.gz (human)
+- blacklistFile is the path to file containing peaks to exclude: either ENCFF547MET.bed.gz (mouse) or ENCFF001TDO.bed.gz (human).  We have included these files in our github repository (located locally at pseudoname "yourPathToDestinRepo/data/blacklist").
 
 ```{bash eval=FALSE} 
 export genomeBowtie=/proj/seq/data/MM10_UCSC/Sequence/Bowtie2Index/genome
 export genomeMacs2=mm;
-export blacklistFile=~/Documents/gitRepos/destin/data/blacklist/ENCFF547MET.bed.gz
+export blacklistFile=yourPathToDestinRepo/data/blacklist/ENCFF547MET.bed.gz
 ```
 
 
@@ -186,6 +187,8 @@ Overview
 - call peaks
 - filter blacklist 
 
+Peaks are called a single time, inlcuding all cell bam files as input.  This is essentially calling peaks on a psuedobulk tissue incorporating all cell types.
+
 Peaks are called by MACS2 using parameters: –nomodel -p 0.01. Thus, only peaks with p-value below 0.01 are retained. Peaks are filtered using an ENCODE annotated blacklist file mainly consisting of low-mappability regions and repeat regions: "ENCFF547MET.bed" for mm10 and "wgEncodeDacMapabilityConsensusExcludable.bed" for hg19. 
 
 
@@ -207,10 +210,14 @@ Specifically, Destin incorporates biological weights for chromatin accessible re
 
 ## 3.1. Load Destin R package
 
-if you have already installed the github repository, you can install the R package from the local copy
+if you have already installed the github repository, you can install the R package from the local copy.  yourPathToDestinRepo is your system specific path to the local cloned repository
 
-```{r message=FALSE, warning=FALSE}
-install.packages("~/Documents/gitRepos/destin/package", repos = NULL, type = "source")
+```{r}
+yourPathToDestinRepo = "~/Documents/gitRepos/destin"
+```
+
+```{r eval=FALSE}
+install.packages("yourPathToDestinRepo/package", repos = NULL, type = "source")
 ```
 
 if you have not already installed the github repository, install the R package directly from github
@@ -228,13 +235,13 @@ library(destin, quietly = T)
 ## 3.2. Set parameters
 
 - sampleName should be the same as used during the pipeline, used to identify input files
-- outDir is the home directory for input files
+- outDir is the home directory for input files, yourPathToDestinRepo is your path to the local cloned repository
 - cellDataFile is the path to a sample description table with each row corresponding to a cell
 - model is selected as hg19 or mm10
 
 ```{r}
 sampleName = "BuenrostroMouse"
-outDir = "~/Documents/gitRepos/destin/practice/BuenrostroMouse"
+outDir = file.path(yourPathToDestinRepo, "practice/BuenrostroMouse")
 cellDataFile = file.path(outDir, "SraRunTableBuenrostroMouse.txt")
 model = "mm10"
 ```
