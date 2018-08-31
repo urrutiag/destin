@@ -226,7 +226,7 @@ Specifically, Destin incorporates biological weights for chromatin accessible re
 if you have already installed the github repository, you can install the R package from the local copy
 
 ```{r message=FALSE, warning=FALSE}
-install.packages("~/Documents/gitRepos/destin/package", repos = NULL, type = "source")
+#install.packages("~/Documents/gitRepos/destin/package", repos = NULL, type = "source")
 ```
 
 if you have not already installed the github repository, install the R package directly from github
@@ -251,7 +251,6 @@ library(destin, quietly = T)
 ```{r}
 sampleName = "PreisslP56"
 outDir = "~/Documents/gitRepos/destin/practice/PreisslP56"
-cellDataFile = file.path(outDir, "cellDataPreissl.txt")
 model = "mm10"
 ```
 
@@ -312,7 +311,7 @@ rse = annotateRSE(rse, model, DHSfile)
 ```
 
 
-## 3.4.1. Load rse
+## 3.5. Load rse
 
 For this example we begin at this step
 ```{r}
@@ -341,13 +340,6 @@ assay(rse)[1:20,1:20]
 ```
 
 
-## 3.5. (optional) Append experimental information if available
-```{r eval=FALSE}
-cellData = fread(cellDataFile) 
-colMerged = merge(rse@colData, cellData, by.x = "cellID", by.y = "Run")
-colData(rse) = colMerged 
-```
-
 ## 3.6. QC
 
 Destin begins with quality control, retaining chromatin regions accessible in at least 5 cells, and retaining cells with total number of chromatin accessible regions within 3 standard deviations from median (robustly calculated using median absolute deviations).  These default parameters can be modified if desired.
@@ -360,13 +352,19 @@ rse = doQC(rse, regionSumCutoff = 5, cellSumCutoffSDs = 3)
 
 Destin uses an unsupervised model-based likelihood to estimate number of clusters. Like WCSSE, the likelihood is non-decreasing with increasing number of clusters.  We fit the model log-likelihood as a linear spline function of number of clusters with a single knot. The knot placement which results in the best fit (lowest sum of squared errors) is selected as number of clusters.
 
-We search a space of 1 to 20 number of clusters (user-modifiable). Here we find 5 clusters.
+We search a space of 1 to 20 number of clusters (user-modifiable). Here we find 5 clusters.  Note that search space must begin with 1.
 
-```{r}
+```{r eval=FALSE}
 set.seed(10)
 clusterEst = estimateNClusters(rse,   clusterVec = 1:20)
 qplot(data = clusterEst$logLikes, x = nClusters, y = logLike) 
 ```
+
+```{r}
+clusterEst = list()
+clusterEst$nClustersEstimate = 5
+```
+
 
 ## 3.8. Clustering cells
 
@@ -397,17 +395,11 @@ cluster 4: oligodendrocytes
 cluster 5: inhibitory neuron
 
 
-```{r}
-clusterTable = table(results$cluster$cluster, rse$cell_type)
-clusterTable
-```
-
-
 ## 3.9. Differential Accessibility
 
 Destin performs differential chromatin accessibility testing via the Fisher test, generating a chromatin accessibility profile for each cluster. We compare each cell type to each other in a 1 vs. all others comparison, treating all chromatin accessible regions independently.
 
-The output includes a genetic feature, Bonferroni corrected p-value and log2 fold change for each chromatin accessible region.
+The output includes a genetic feature, Bonferroni corrected p-value and log2 fold change for each chromatin accessible region.  We show the first two clusters for the first 1K peaks here.
 
 ```{r}
 #set nCores to an appropriate value based on your system

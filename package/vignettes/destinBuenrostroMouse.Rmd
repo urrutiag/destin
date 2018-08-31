@@ -371,7 +371,7 @@ paste0("purity = ", purity)
 
 Destin performs differential chromatin accessibility testing via the Fisher test, generating a chromatin accessibility profile for each cluster. We compare each cell type to each other in a 1 vs. all others comparison, treating all chromatin accessible regions independently.
 
-The output includes a genetic feature, Bonferroni corrected p-value and log2 fold change for each chromatin accessible region.
+The output includes a genetic feature, Bonferroni corrected p-value and log2 fold change for each chromatin accessible region. We show the two clusters for the first 1K peaks here.
 
 ```{r}
 rse = getDiffAccess(rse, clusterMap = results$cluster)

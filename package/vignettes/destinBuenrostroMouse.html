@@ -157,7 +157,7 @@ $(document).ready(function () {
 <li><a href="#set-model-specific-parameters-for-mm10">2.1.3. Set model specific parameters for mm10</a></li>
 <li><a href="#ensure-that-dependencies-are-in-system-search-path">2.1.4. Ensure that dependencies are in system search PATH</a></li>
 </ul></li>
-<li><a href="#download-fastq-files-for-toy-example">2.2. Download fastq files for toy example</a></li>
+<li><a href="#optional-download-fastq-files-for-toy-example">2.2. (Optional) Download fastq files for toy example</a></li>
 <li><a href="#align-reads">2.3. Align reads</a></li>
 <li><a href="#call-peaks">2.4. Call Peaks</a></li>
 </ul></li>
@@ -165,8 +165,8 @@ $(document).ready(function () {
 <li><a href="#load-destin-r-package">3.1. Load Destin R package</a></li>
 <li><a href="#set-parameters">3.2. Set parameters</a></li>
 <li><a href="#create-rse-from-bam-and-peaks">3.3. Create RSE from bam and peaks</a></li>
-<li><a href="#optional-append-experimental-information">3.4. (optional) Append experimental information</a></li>
-<li><a href="#annotate-regions">3.5. Annotate regions</a></li>
+<li><a href="#annotate-regions">3.4. Annotate regions</a></li>
+<li><a href="#optional-append-experimental-information">3.5. (optional) Append experimental information</a></li>
 <li><a href="#qc">3.6. QC</a></li>
 <li><a href="#determine-number-of-clusters">3.7. Determine number of clusters</a></li>
 <li><a href="#clustering-cells">3.8. Clustering cells</a></li>
@@ -182,7 +182,7 @@ $(document).ready(function () {
 <li>Mouse scATAC-seq from Buenrostro et al.</li>
 <li>GEO accession: GSE65360<br />
 </li>
-<li>2 cell types</li>
+<li>2 cell types (hematopoietic cells, mouse embryonic stem cells)</li>
 <li>Fluidigm microfluidics platform</li>
 <li>192 cells (20 in the Destin toy example)</li>
 <li>original fastq files correspond to individual cells</li>
@@ -212,7 +212,7 @@ output: bam files and peaks bed file</p>
 <li>model is selected as hg19 or mm10</li>
 <li>cellData is the path to a sample description table with each row corresponding to a cell</li>
 </ul>
-<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="va">outDir=</span>~/destin/BuenrostroMouse
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="va">outDir=</span>~/Documents/gitRepos/destin/practice/BuenrostroMouse
 <span class="va">SRRFile=$outDir</span>/SRR_Acc_ListBuenrostroMouse.txt
 <span class="va">sampleName=</span>BuenrostroMouse
 <span class="va">srcDir=</span>~/Documents/gitRepos/destin/src
@@ -234,7 +234,7 @@ output: bam files and peaks bed file</p>
 <ul>
 <li>genomeBowtie is the path to the indexed genome for bowtie2</li>
 <li>genomeMacs2 is the model for MACS2 peak caller: either mm (mouse) or hs (human)</li>
-<li>blacklistFile is the path to file containing peaks to exclude: either wgEncodeDacMapabilityConsensusExcludable.bed.gz (mouse) or ENCFF001TDO.bed.gz (human)</li>
+<li>blacklistFile is the path to file containing peaks to exclude: either ENCFF547MET.bed.gz (mouse) or ENCFF001TDO.bed.gz (human)</li>
 </ul>
 <div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="bu">export</span> <span class="va">genomeBowtie=</span>/proj/seq/data/MM10_UCSC/Sequence/Bowtie2Index/genome
 <span class="bu">export</span> <span class="va">genomeMacs2=</span>mm;
@@ -267,8 +267,8 @@ output: bam files and peaks bed file</p>
 <span class="ex">/nas/longleaf/apps/bowtie2/2.3.4.1/bin/bowtie2</span></code></pre></div>
 </div>
 </div>
-<div id="download-fastq-files-for-toy-example" class="section level2">
-<h2>2.2. Download fastq files for toy example</h2>
+<div id="optional-download-fastq-files-for-toy-example" class="section level2">
+<h2>2.2. (Optional) Download fastq files for toy example</h2>
 <p>This is an optional step, if you wish to download fastq files from the SRA repository. The first line reads the SRRFile contents into an array. The next line downloads those files. –split-files tells sratoolkit that the read are paired and we desire 2 files per cell/sample. This pipeline assumes paired reads.</p>
 <div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="va">SRRNames=(</span> <span class="va">$(</span> <span class="fu">cat</span> <span class="va">$SRRFile</span> <span class="va">)</span> <span class="va">)</span>
 <span class="ex">fastq-dump</span> <span class="st">&quot;</span><span class="va">${SRRNames[@]}</span><span class="st">&quot;</span> --split-files -O <span class="va">$outDir</span>/fastq --gzip</code></pre></div>
@@ -290,10 +290,10 @@ output: indexed bam files, one bam file per cell</p>
 <li>alignment quality &gt;= 30</li>
 <li>index</li>
 </ul>
-<p>We first cut Illumina adaptors using cutadapt with –minimum length set to 20. Reads are aligned to respective genome using bowtie2 with setting X2000 to ensure paired reads are within 2kb of one another. Samtools is used to covert to bam format. Picard tools is then used to perform a series of tasks: SortSam to sort; AddOrReplaceReadGroups to add read groups and index; MarkDuplicates to mark and remove duplicates; and BuildBamIndex to index reads. Samtools is used to remove mitochondrial, unmapped, and chromosome Y reads.</p>
-<p>Next, due to Tn5 insertion, the starting position of forward reads is adjusted +4, and the end position of reverse reads is adjusted -5. This is performed using a custom awk command. Only aligned reads with map quality over 30 are retained. Finally, aligned reads are indexed by picard SortSam and indexed by samtools.</p>
-<p>parameters w, x, y, z refer to cutadapt inputs. In this experiment Illumina adaptors were used, but the sequences can be apadted to a different experiment. See <a href="https://cutadapt.readthedocs.io/en/stable/guide.html" class="uri">https://cutadapt.readthedocs.io/en/stable/guide.html</a> for further info.</p>
+<p>We first cut Illumina adaptors using cutadapt with –minimum length set to 20. parameters w, x, y, z refer to cutadapt inputs. In this experiment Illumina adaptors were used, but the sequences can be adapted to a different experiment. See <a href="https://cutadapt.readthedocs.io/en/stable/guide.html" class="uri">https://cutadapt.readthedocs.io/en/stable/guide.html</a> for further info.</p>
 <p>-w refers to cutadapt input ADAPTER_FWD “-A” -x refers to cutadapt input ADAPTER_REV “-a” -y refers to cutadapt input second ADAPTER_FWD “-G” -z refers to cutadapt input second ADAPTER_REV “-g”</p>
+<p>Reads are aligned to respective genome using bowtie2 with setting X2000 to ensure paired reads are within 2kb of one another. Samtools is used to covert to bam format. Picard tools is then used to perform a series of tasks: SortSam to sort; AddOrReplaceReadGroups to add read groups and index; MarkDuplicates to mark and remove duplicates; and BuildBamIndex to index reads. Samtools is used to remove mitochondrial, unmapped, and chromosome Y reads.</p>
+<p>Next, due to Tn5 insertion, the starting position of forward reads is adjusted +4, and the end position of reverse reads is adjusted -5. This is performed using a custom awk command. Only aligned reads with map quality over 30 are retained. Finally, aligned reads are indexed by picard SortSam and indexed by samtools.</p>
 <div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="va">SRRNames=(</span> <span class="va">$(</span> <span class="fu">cat</span> <span class="va">$SRRFile</span> <span class="va">)</span> <span class="va">)</span>
 <span class="kw">for</span> <span class="ex">cellID</span> in <span class="st">&quot;</span><span class="va">${SRRNames[@]}</span><span class="st">&quot;</span>
 <span class="kw">do</span>
@@ -468,15 +468,8 @@ rse =<span class="st"> </span><span class="kw">createRSE</span>(bamDir, bamFiles
 ## [19,] . . . . . . . . . . . . . . . . 1 1 1 .
 ## [20,] . . . . . . . . . . . . . . . . . . . .</code></pre>
 </div>
-<div id="optional-append-experimental-information" class="section level2">
-<h2>3.4. (optional) Append experimental information</h2>
-<p>in this example we append the SRA Run table from SRA to the colData</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cellData =<span class="st"> </span><span class="kw">fread</span>(cellDataFile) 
-colMerged =<span class="st"> </span><span class="kw">merge</span>(rse<span class="op">@</span>colData, cellData, <span class="dt">by.x =</span> <span class="st">&quot;cellID&quot;</span>, <span class="dt">by.y =</span> <span class="st">&quot;Run&quot;</span>)
-<span class="kw">colData</span>(rse) =<span class="st"> </span>colMerged </code></pre></div>
-</div>
 <div id="annotate-regions" class="section level2">
-<h2>3.5. Annotate regions</h2>
+<h2>3.4. Annotate regions</h2>
 <p>Annotate the ranges with TSS distance and DHS frequency</p>
 <p>TSS distance:</p>
 <p>Distance to transcription start site is annotated using R function annotatePeakInBatch from the ChIPpeakAnno package. Data set ’TSS.human.GRCh37’ is used for model hg19 and ’TSS.mouse.GRCm38’ is used for model mm10. A promoter is defined as distance &gt;=2kb and &lt;= 1kb. Otherwise the chromatin accessible region is defined as distal regulatory element.</p>
@@ -486,6 +479,13 @@ colMerged =<span class="st"> </span><span class="kw">merge</span>(rse<span class
 <p>For mouse reference, we used search terms: “bed broadpeaks”, “Mus musculus”, “DNase-seq”, and “tissue”. This resulted in 61 experiments representing 27 tissue types. All experiments were from the John Stamatoyannopoulos lab.</p>
 <p>For processing we created a template representing the entire genome in 500bp bins using R functions tile and GRanges from package GenomicRanges. This was followed by GenomicRanges function overlapsAny to assign the files to the template. Overlaps were averaged across all files of same type (cell line or tissue), so that no type would be overrepresented. Finally, overlaps were averaged across all types.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">rse =<span class="st"> </span><span class="kw">annotateRSE</span>(rse, model)</code></pre></div>
+</div>
+<div id="optional-append-experimental-information" class="section level2">
+<h2>3.5. (optional) Append experimental information</h2>
+<p>in this example we append the SRA Run table from SRA to the colData</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cellData =<span class="st"> </span><span class="kw">fread</span>(cellDataFile) 
+colMerged =<span class="st"> </span><span class="kw">merge</span>(rse<span class="op">@</span>colData, cellData, <span class="dt">by.x =</span> <span class="st">&quot;cellID&quot;</span>, <span class="dt">by.y =</span> <span class="st">&quot;Run&quot;</span>)
+<span class="kw">colData</span>(rse) =<span class="st"> </span>colMerged </code></pre></div>
 </div>
 <div id="qc" class="section level2">
 <h2>3.6. QC</h2>
@@ -554,7 +554,7 @@ clusterTable</code></pre></div>
 <div id="differential-accessibility" class="section level2">
 <h2>3.9. Differential Accessibility</h2>
 <p>Destin performs differential chromatin accessibility testing via the Fisher test, generating a chromatin accessibility profile for each cluster. We compare each cell type to each other in a 1 vs. all others comparison, treating all chromatin accessible regions independently.</p>
-<p>The output includes a genetic feature, Bonferroni corrected p-value and log2 fold change for each chromatin accessible region.</p>
+<p>The output includes a genetic feature, Bonferroni corrected p-value and log2 fold change for each chromatin accessible region. We show the two clusters for the first 1K peaks here.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">rse =<span class="st"> </span><span class="kw">getDiffAccess</span>(rse, <span class="dt">clusterMap =</span> results<span class="op">$</span>cluster)</code></pre></div>
 <p>Results of differential accessibility (top 10 p-values per cluster)</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">rowRanges</span>(rse)[<span class="kw">order</span>(<span class="kw">rowRanges</span>(rse)<span class="op">$</span>pValsCor_<span class="dv">1</span>, <span class="dt">decreasing =</span> F)][<span class="dv">1</span><span class="op">:</span><span class="dv">10</span>, <span class="kw">c</span>(<span class="st">&quot;feature&quot;</span>, <span class="st">&quot;pValsCor_1&quot;</span>, <span class="st">&quot;log2FC_1&quot;</span>)] </code></pre></div>
