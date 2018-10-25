@@ -1,7 +1,7 @@
 #!/bin/bash
 
 barcodeSampleName="$barcode"."$sampleName"
-while getopts c:s:o:g: opt; do
+while getopts c:s:o:g:w:x:y:z: opt; do
   case ${opt} in
     c ) cellID=$OPTARG  ;;
     s ) sampleName=$OPTARG  ;;
