@@ -8,11 +8,15 @@ Description: Apply clustering algorithms to identify cell type in scATAC data
 License: GPL-2
 Depends: R (>= 3.4.3),
  ChIPpeakAnno, 
+ cluster,
+ ClusterR,
  data.table, 
  GenomicAlignments,
  ggplot2,
+ gridExtra,
  irlba, 
  Matrix, 
  parallel, 
  rtracklayer
+ Rtsne
 

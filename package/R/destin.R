@@ -38,7 +38,8 @@ getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1),
                                       nPeaksActual = nrow(X),
                                      logLike = logLike),
                  cluster = data.frame(cellID = rse$cellID,
-                                      cluster = kfit$cluster)
+                                      cluster = kfit$cluster),
+                 PCs = projectionNorm
     ))
   } ) 
   
@@ -53,7 +54,10 @@ getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1),
   
   if (outCluster == F) return(summary)
   
-  if (outCluster == T) return(list(summary = summary, cluster = results[[1]]$cluster))
+  if (outCluster == T) return(list(summary = summary, 
+                                   cluster = results[[1]]$cluster, 
+                                   PCs = results[[1]]$PCs))
+                              
 }
 
 

@@ -7,16 +7,21 @@ export(annotateRSE,
   getElbow,
   estimateNClusters,
   getDiffAccess,
-  doQC
+  doQC,
+  plotNClusters,
+  plotClusterTsne
 )
 
 import(
   ChIPpeakAnno, 
+  cluster,
+  ClusterR,
   data.table, 
   GenomicAlignments, 
   ggplot2,
   irlba, 
   Matrix, 
   parallel, 
-  rtracklayer)
+  rtracklayer,
+  Rtsne)
 
