@@ -6,6 +6,7 @@ Author: Gene Urrutia
 Maintainer: Gene Urrutia <urrutia@email.unc.edu>
 Description: Apply clustering algorithms to identify cell type in scATAC data
 License: GPL-2
+LazyData: true
 Depends: R (>= 3.4.3),
  ChIPpeakAnno, 
  cluster,
@@ -17,6 +18,6 @@ Depends: R (>= 3.4.3),
  irlba, 
  Matrix, 
  parallel, 
- rtracklayer
+ rtracklayer,
  Rtsne
 

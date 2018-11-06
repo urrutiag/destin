@@ -11,6 +11,8 @@ This is the Jiang lab scATAC-seq processing and cell clustering pipeline.
 
 The bioinformatic pipeline requires cloning the git repostory from github, where yourPathToDestinRepo is your path to the local cloned repository
 
+Running the vignettes also requires cloning the git repository
+
 ```bash
 cd yourPathToDestinRepo
 git clone https://github.com/urrutiag/destin.git
@@ -22,7 +24,7 @@ install.packages("yourPathToDestinRepo/package", repos = NULL, type = "source")
 library(destin)
 ```
 
-or downloading from github directly:
+or downloading from github directly (note that this will not allow for the bioinformatics pipeline or the vignette):
 ```r
 install.packages("devtools")
 devtools::install_github("urrutiag/destin/package")

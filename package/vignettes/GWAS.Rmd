@@ -4,9 +4,9 @@ output: html_document
 ---
 
 todo: 
-  arrange all files
-  fix bugs
-  try to add additional description
+arrange all files
+fix bugs
+try to add additional description
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -15,9 +15,9 @@ knitr::opts_chunk$set(echo = TRUE)
 Cell-type Specific GWAS 
 
 load libraries and set paths
-```{r}
-library(biomaRt)
-library(destin)
+```{r message=FALSE, warning=FALSE}
+#library(biomaRt)
+library(destin, quietly = T)
 packageDir = "~/Documents/gitRepos/destin/"
 gwasDir = "~/Dropbox/Gene_shared/scATACseq/articles/GWAS"
 snpDir = file.path(gwasDir, "SNPresults")
@@ -33,7 +33,7 @@ load(file.path(packageDir, "practice/PreisslP56/peaks/PreisslP56Clustered.Rdata"
 To prepare for cell-type specific GWAS association, we must:
 - provide additional annotation for the chromatin accessible regions.
 - aggregate the binary signal across peaks by gene
-- calculate Cell type specificity for chromatin accessibility by gene
+- calculate cell type specificity for chromatin accessibility by gene
 
 ## Conversion from mouse annotation to human annnotation
 
@@ -49,7 +49,7 @@ Required conversion files:
 ### MGI symbol (Mouse)
 MGI symbol is mapped according to ensembl_gene_id, which was annotated during the Destin clustering ("TSS.mouse.GRCm38" from the R ChIPpeakAnnopackage).  We use the BioMart dataset "mmusculus_gene_ensembl" to map to MGI symbol.
 
-The mmusculus conversion data frame is preinstalled with Destin
+The mmusculus conversion data frame "mmusculusConversion.Rdata" is preinstalled with Destin
 ```{r}
 # mart = useMart(biomart="ensembl", dataset="mmusculus_gene_ensembl")
 # conversion = getBM(attributes = c("ensembl_gene_id", "mgi_symbol"), mart=mart)
@@ -64,7 +64,7 @@ elementMetadata(rse)$mgi_symbol =
 ### HGNC (Human) via Mouse-Human homolog
 Next, we map mouse to human gene using homolog list "HOM_MouseHumanSequence.rpt" from MGI. Only genes with 1 to 1 homolog mapping were retained. 
 
-"HOM_MouseHumanSequence.rpt" is preloaded with Destin
+"HOM_MouseHumanSequence.rpt" is preinstalled with Destin
 ```{r}
 homData = fread(file.path(gwasDir, "HOM_MouseHumanSequence.rpt"), 
                 check.names=T)
@@ -84,11 +84,13 @@ rse = rse[!is.na(elementMetadata(rse)$humanSymbol)]
 
 ### Entrez ID (Human)
 
-Finally, we use bioMart again to map to Entrez ID, after which accessible regions were
-aggregated by gene.
+Finally, we use bioMart again to map to Entrez ID, after which accessible regions were aggregated by gene.
 
-The hsapiens conversion data frame is preinstalled with Destin.
+The hsapiens conversion data frame "hsapiensConversion.Rdata" is preinstalled with Destin.
 ```{r}
+# mart = useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
+# conversion = getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "entrezgene"), mart=mart)
+# save(conversion, file = "~/Dropbox/Gene_shared/scATACseq/destin/package/inst/mart/hsapiensConversion.Rdata")
 load("~/Dropbox/Gene_shared/scATACseq/destin/archive/package/inst/mart/hsapiensConversion.Rdata")
 elementMetadata(rse)$entrezID = 
   conversion$entrezgene[match(
@@ -106,16 +108,18 @@ elementMetadata(rse)
 
 ## Aggregate chromatin acessibility by gene 
 
-The summarized experiment now contains multiple accessible peaks per entrez ID.  Thus we aggregate to create a chromatin accessiblity matrix that is no longer binary.
+The summarized experiment now contains multiple accessible peaks per entrez ID.  Thus we aggregate across peaks within gene to create a chromatin accessiblity matrix that is no longer binary.
 
 ### create list of aggregated chromatin accessibility by entrez ID 
-run in parallel 
+This step is high processign thus it is recommended to run in parallel.  It is also high memory, thus we use sparseMatrix format.
+
+The output of this intermediate step is a list, length the number of genes.  Each element of the list contains rowData which contains the gene info.  Each element also contains a sparse vector, length the number of cells.
 
 ```{r eval=FALSE}
 nCores = detectCores() - 1
 cl = makeCluster(nCores)
 clusterExport(cl, list("rse"))
-clusterEvalQ(cl, library(SummarizedExperiment))
+clusterEvalQ(cl, library(SummarizedExperiment, quietly = T))
 
 seMiniList = parLapply(cl, unique(rowRanges(rse)$entrezID) , function( myGene ) {
   miniRse = rse[rowRanges(rse)$entrezID == myGene]
@@ -133,18 +137,21 @@ stopCluster(cl)
 
 outDir = "~/Dropbox/Gene_shared/scATACseq/data/GWASsets"
 save(seMiniList, file = file.path(outDir, "seMiniListPreisslP56"))
+
+seMiniList[[1]]
 ```
+
 
 ### combine list of list of aggregated chromatin accessibility by gene 
 Next we combine list to create aggregated summarized experiment where rows are genes by entrez ID
-***Needs attention
+
 ```{r eval=FALSE}
 outDir = "~/Dropbox/Gene_shared/scATACseq/data/GWASsets"
 load(file = file.path(outDir, "seMiniListPreisslP56"))
 
 se = SummarizedExperiment(
   rowData = rbindlist(lapply(seMiniList, function(myRow) myRow$rowData)),
-  assay = do.call("rbind", lapply(seMiniList, function(myRow) myRow$assay)),
+  assay = Reduce("rbind", lapply(seMiniList, function(myRow) myRow$assay)),
   colData = colData(rse)
 )
 
@@ -152,28 +159,20 @@ outDir = "~/Dropbox/Gene_shared/scATACseq/data/GWASsets"
 save(se, file = file.path(outDir, "sePreisslP56"))
 ```
 
-### assign cell type names (unecessary if can get above working)
+
+### Calculate Cell type specificity for chromatin accessilbilty by gene
+This step calculates the proportion of total accessibility by cell type.  This is required input for magma.
+
+The result is a stacked data frame containing the cell type specificity for each gene - cell type combination.  cell type specificity is calculated as the ratio between the cell type accessibility and the total accessibility across all cell types.
+
 ```{r}
 outDir = "~/Dropbox/Gene_shared/scATACseq/data/GWASsets"
 load(file = file.path(outDir, "sePreisslP56"))
 
-# Calculate cell type averages and specificity for each gene
-#cell type averages
-table(se$cluster, se$cell_type)
-clusterMap = data.frame(cluster = 1:5, 
-                        cell_type = c("IN1", "NG", "EX", "OC", "IN2"))
-colData(se)$cell_typeOG = colData(se)$cell_type
-colData(se)$cell_type = clusterMap$cell_type[match(colData(se)$cluster, 
-                                                   clusterMap$cluster)] 
-```
-
-### Calculate Cell type specificity for chromatin accessilbilty by gene
-This step calculates the proportion of total accessibility by cell type.  This is required input for magma.
-```{r}
 geneAccessibility = rbindlist(
-  lapply(unique(se$cell_type), 
+  lapply(unique(se$cellType), 
          function(myCellType) {
-           miniMat = assay(se)[, se$cell_type == myCellType]
+           miniMat = assay(se)[, se$cellType == myCellType]
            peakCount = apply(miniMat,1,sum)/ncol(miniMat)
            outDF = data.frame(hgncSymbol = rowData(se)$hgncSymbol,
                               entrezID = rowData(se)$entrezID,
@@ -186,13 +185,13 @@ geneAccessibility = rbindlist(
 )
 geneAccessibility[, totalAcrossTypes := sum(accessibility) , by = "entrezID"] 
 geneAccessibility[, cellTypeSpecificity := accessibility/totalAcrossTypes]
-```
-results
-```{r}
 head(geneAccessibility)
 ```
 
+
 # Apply GWAS
+
+Now we determine whether GWAS results are associated with increased accessibility in a particular cell type.  We utilize 2 methods originally developed for scRNA-seq expression: ECWE and MAGMA.
 
 ## EWCE
 Expression Weighted Celltype Enrichment (ECWC) (Skene and Grant, 2016). While magma tests for trend in SNP p-value over increasing cell type specificty, ECWC tests whether the set of significant SNPs are more specific to cell type than are a random set of SNPs. 
@@ -219,24 +218,14 @@ fileNames = c("alzLambert.csv", "parkNalls.csv", "SCZ_PGC.tsv")
 set.seed(10)
 finalP = rbindlist(
   lapply(fileNames, function(fileName) {
-  snps = fread(file.path(gwasDir,  fileName), check.names = T)
-  geneList = snps$MAPPED_GENE[!grepl(" ", snps$MAPPED_GENE) & !grepl("LOC", snps$MAPPED_GENE)]
-  getEWCE(geneAccessibility, geneList, fileName)
-}))
+    snps = fread(file.path(gwasDir,  fileName), check.names = T)
+    geneList = snps$MAPPED_GENE[!grepl(" ", snps$MAPPED_GENE) & !grepl("LOC", snps$MAPPED_GENE)]
+    getEWCE(geneAccessibility, geneList, fileName)
+  }))
 
 ```
 
-plot EWCE
-```{r}
-ggplot(finalP, aes(x = fileName, 
-                   y = cellType,
-                   fill = pValue)) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-  geom_tile() 
 
-```
-
-print results
 ```{r}
 finalP
 ```
@@ -263,10 +252,10 @@ The specificity quantile matrix must be printed to file, as it is required by ma
 ```{r}
 accessbilityCellTypeQuant = rbindlist(
   lapply( unique( geneAccessibility$cellType ), function(myCellType) {
-  getSpecQuantiles(geneAccessibility, nBins=40, myCellType=myCellType)
-}))
+    getSpecQuantiles(geneAccessibility, nBins=40, myCellType=myCellType)
+  }))
 quantsForMagma = dcast(accessbilityCellTypeQuant, entrezID ~ cellType, value.var = "quantile")
-homeDir = "~/Dropbox/Gene_shared/scATACseq/articles/GWAS/SNPresults"
+homeDir = "~/Dropbox/Gene_shared/scATACseq/articles/GWAS/SNPresults2"
 write.table(quantsForMagma, 
             file = file.path(homeDir, "quantsForMagma.tsv"),
             row.names = F, quote = F)
@@ -325,9 +314,9 @@ The  SNP  location  file  should  contain three  columns:  SNP ID,  chromosome, 
 
 ```{bash}
 magma --annotate window=10,1.5 \
-       --snp-loc $homeDir/$dirPath/"$studyName"Reorder.txt \
-       --gene-loc $homeDir/NCBI37.3/NCBI37.3.gene.loc  \
-       --out $homeDir/$dirPath/$studyName
+--snp-loc $homeDir/$dirPath/"$studyName"Reorder.txt \
+--gene-loc $homeDir/NCBI37.3/NCBI37.3.gene.loc  \
+--out $homeDir/$dirPath/$studyName
 ```
 
 ###Gene wise p-values and covariance
@@ -335,22 +324,22 @@ magma adjusts for covariates in order to produce an biologically appropriate p-v
 
 ```{bash}
 magma --bfile  $homeDir/g1000_eur/g1000_eur \
-       --gene-model snp-wise=mean \
-      --pval $homeDir/$dirPath/"$studyName"Reorder.txt use=SNP,P \
-       N=10000 \
-      --gene-annot $homeDir/$dirPath/"$studyName".genes.annot \
-      --out $homeDir/$dirPath/$studyName
+--gene-model snp-wise=mean \
+--pval $homeDir/$dirPath/"$studyName"Reorder.txt use=SNP,P \
+N=10000 \
+--gene-annot $homeDir/$dirPath/"$studyName".genes.annot \
+--out $homeDir/$dirPath/$studyName
 ```
 
 ### Gene property analysis
 covariate  file,  with the  gene  ID  in the first  column
 Each of the covariates in the file is analysed 
-  (though they are still analysed  one  at  a  time)
+(though they are still analysed  one  at  a  time)
 
 ```{bash}
 magma --gene-results $homeDir/$dirPath/"$studyName".genes.raw \
-    --gene-covar $homeDir/quantsForMagma.tsv onesided \
-    --out $homeDir/$dirPath/$studyName 
+--gene-covar $homeDir/quantsForMagma.tsv onesided \
+--out $homeDir/$dirPath/$studyName 
 ```
 
 ### Magma results

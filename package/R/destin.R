@@ -61,7 +61,7 @@ getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1),
 }
 
 
-getLogLike = function(countMat, cluster){
+getLogLike = function(countMat, cluster, sum = T){
   
   empiricalProbList = lapply(unique(cluster), function(myCellType){
     sums = Matrix::rowSums(countMat[,cluster == myCellType, drop = F]) 
@@ -70,12 +70,27 @@ getLogLike = function(countMat, cluster){
   })
   names(empiricalProbList) = unique(cluster)
   
-  logLikes = sapply( seq_along(cluster), function(myCellIndex) {
-    dmultFast(x = countMat[,myCellIndex],
-              prob = empiricalProbList[[paste(cluster[myCellIndex])]])
-  })
+  if (sum == T) { 
+    logLikes = sapply( seq_along(cluster), function(myCellIndex) {
+      dmultFast(x = countMat[,myCellIndex],
+                prob = empiricalProbList[[paste(cluster[myCellIndex])]])
+    })
+    return( sum( logLikes ) )
+  } 
   
-  return(sum(logLikes))
+  #create cell by cluster matrix of likelihoods
+  if (sum == F) {
+    clusterIndex = 1
+    logLikeList = lapply(1:length(unique(cluster)), function(clusterIndex) {
+      logLikes = sapply( seq_along(cluster), function(myCellIndex) {
+        dmultFast(x = countMat[,myCellIndex],
+                  prob = empiricalProbList[[clusterIndex]])
+      })
+    })
+    logLikeMatrix = do.call(cbind, logLikeList)
+    return( logLikeMatrix )
+  }
+  
 }
 
 

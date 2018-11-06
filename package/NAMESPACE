@@ -9,7 +9,8 @@ export(annotateRSE,
   getDiffAccess,
   doQC,
   plotNClusters,
-  plotClusterTsne
+  plotClusterTsne,
+  getEWCE
 )
 
 import(

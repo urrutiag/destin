@@ -110,11 +110,11 @@ plotNClusters = function(clusterEst){
 }
 
 
-plotClusterTsne = function(rse, clusterResults, clusterLabels = NULL){
+plotClusterTsne = function(clusterResults, clusterLabels = NULL){
   tsne = Rtsne(as.matrix(clusterResults$PCs))
   p = qplot(x = tsne$Y[,1],
             y = tsne$Y[,2],
-            col = factor(colData(rse)$cluster),
+            col = factor(clusterResults$cluster$cluster),
             xlab = paste("t-SNE component 1"),
             ylab = paste("t-SNE component 2"),
             main = paste0( "2D t-SNE Visualization for ", sampleName)) +  
@@ -124,8 +124,8 @@ plotClusterTsne = function(rse, clusterResults, clusterLabels = NULL){
   if ( !is.null( clusterLabels ) ){
     clusterCenters = data.frame(
       label = clusterLabels,
-      x = tapply(tsne$Y[,1], colData(rse)$cluster, mean),
-      y = tapply(tsne$Y[,2], colData(rse)$cluster, mean)
+      x = tapply(tsne$Y[,1], clusterResults$cluster$cluster, mean),
+      y = tapply(tsne$Y[,2], clusterResults$cluster$cluster, mean)
     )
     p = p + with(clusterCenters, annotate("text", x=x, y=y, label = label, size = 6))
   }

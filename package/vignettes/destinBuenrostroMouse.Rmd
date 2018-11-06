@@ -217,7 +217,7 @@ yourPathToDestinRepo = "~/Documents/gitRepos/destin"
 ```
 
 ```{r eval=FALSE}
-install.packages("yourPathToDestinRepo/package", repos = NULL, type = "source")
+install.packages(file.path(yourPathToDestinRepo,"package"), repos = NULL, type = "source")
 ```
 
 if you have not already installed the github repository, install the R package directly from github
@@ -337,13 +337,27 @@ rse = doQC(rse, regionSumCutoff = 5, cellSumCutoffSDs = 3)
 
 ## 3.7. Determine number of clusters
 
-Destin uses an unsupervised model-based likelihood to estimate number of clusters. Like WCSSE, the likelihood is non-decreasing with increasing number of clusters.  We fit the model log-likelihood as a linear spline function of number of clusters with a single knot. The knot placement which results in the best fit (lowest sum of squared errors) is selected as number of clusters.
+Destin uses an unsupervised model-based likelihood to estimate number of clusters. Like WCSSE, the likelihood is non-decreasing with increasing number of clusters.  We fit the model log-likelihood as a linear spline function of number of clusters with a single knot. The knot placement which results in the best fit (lowest sum of squared errors) is selected as number of clusters (n_k).
 
-We search a space of 1 to 5 number of clusters (user-modifiable). Here we find 2 clusters.
+Also shown are results using 4 other methods to estimate number of clusters:
+
+wcsseElbow: They fit WCSSE as a linear spline function of k with a single knot. The knot placement which results in the best fit (lowest sum of squared errors) is selected as n_k
+
+silhouette: n_k is selected as the number of clusters that maximizes average silhouette width across all cells
+
+distortion: accounts for the decrease in WCSSE by comparing to a baseline model incorporating a weight factor based on number of dimensions
+
+GapStat: The gap (Tibshirani et al., 2001) statistic accounts for the tendency to overestimate n_k by using a permutation approach and fitting a null distribution to the WCSSE which naturally decreases as n_k increases. Then the empirical WCSSE is compared to the null distribution with the gap statistic as output. To select the number of clusters the “first SE” method is used which determines the first nk where the gap statistic is within 1 standard deviation of the following gap statistic.
+
+We search a space of 1 to 5 number of clusters (user-modifiable). Here we find 2 clusters.  
 ```{r}
 set.seed(10)
-clusterEst = estimateNClusters(rse,   clusterVec = 1:5)
-qplot(data = clusterEst$logLikes, x = nClusters, y = logLike) 
+clusterEst = estimateNClusters(rse,   nClustersMax = 5)
+```
+
+Estimated number of clusters shown in blue by method.
+```{r}
+plotNClusters(clusterEst)
 ```
 
 ## 3.8. Clustering cells
@@ -353,7 +367,7 @@ For each combination of TSS distance weights, DHS frequency weights, and number 
 In this example, we run Destin with default settings aside from lowering the number of principle components (since we only have 17 cells post-QC).  Optimal tuning parameters for the toy example are displayed in the summary: TSS weights (1, 2), higher weight to distal regulatory elements; DHS weights (1, 1), unweighted DHS frequency; and 3 principle components.
 
 ```{r warning=FALSE } 
-nClusters = clusterEst$nClustersEstimate
+nClusters = clusterEst$nClustersList$logLikeElbow
 PCrange = 3:10
 TSSWeightsList = list(c(1,2), c(1,1.5), c(1,1.25), c(1,1))
 DHSWeightsList = list(c(1,1), c(1,2), c(1,3), c(1,5))
@@ -362,8 +376,21 @@ results = destinGrid (rse, sampleName,
             TSSWeightsList = TSSWeightsList,
             DHSWeightsList = DHSWeightsList,
             nClusters = nClusters)
-results
+results$summary
 ```
+
+
+Next we reassign cells by maximizing each cell's post-classification multinomial likelihood. The input to the multinomial model is the chromatin accessibility count matrix and the cell cluster assignments.  In this example there is no change in clustering assignment
+```{r}
+countMat = assay(rse)
+cluster = results$cluster$cluster
+logLikeMatrix = getLogLike(countMat, cluster, sum = F)
+clusterReassigned = apply(logLikeMatrix, 1, which.max)
+clusterReassigned
+```
+
+
+
 
 Since Buenrostro et al. provided cell labels, we can compute cluster purity
 ```{r}

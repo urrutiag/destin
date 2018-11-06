@@ -6,7 +6,9 @@ output:
     toc: true
 ---
 
-For this example we begin at this step 3.1. but skip 3.3 through 3.4 due to large file sizes. We begin again at step 3.4.1. Load rse. Previous steps are described for reference.
+For this workflow example we begin at this step 3.5. Load rse. 
+
+Previous steps are described for reference.
 
 # 1. Data
 - P56 forebrain mouse scATAC-seq from Preissl et al.
@@ -226,24 +228,18 @@ Specifically, Destin incorporates biological weights for chromatin accessible re
 
 ## 3.1. Load Destin R package
 
-if you have already installed the github repository, you can install the R package from the local copy.  yourPathToDestinRepo is your path to the local cloned repository
+Please see the README.md for instructions to install the github repository.  You can install the R package from the local copy.  yourPathToDestinRepo is your path to the local cloned repository
 
-```{r}
+```{r eval = FALSE}
 yourPathToDestinRepo = "~/Documents/gitRepos/destin"
 ```
 
 ```{r eval=FALSE}
-install.packages("yourPathToDestinRepo/package", repos = NULL, type = "source")
-```
-
-if you have not already installed the github repository, install the R package directly from github
-```{r eval = F}
-install.packages("devtools")
-devtools::install_github("urrutiag/destin/package")
+install.packages(file.path(yourPathToDestinRepo,"package"), repos = NULL, type = "source")
 ```
 
 load the package
-```{r message=FALSE, warning=FALSE}
+```{r  eval = F, message=FALSE, warning=FALSE}
 library(destin, quietly = T)
 ```
 
@@ -255,7 +251,7 @@ library(destin, quietly = T)
 - cellDataFile is the path to a sample description table with each row corresponding to a cell
 - model is selected as hg19 or mm10
 
-```{r}
+```{r eval = F}
 sampleName = "PreisslP56"
 outDir = file.path(yourPathToDestinRepo, "practice/PreisslP56")
 model = "mm10"
@@ -315,8 +311,14 @@ rse = annotateRSE(rse, model)
 
 ## 3.5. Load rse
 
-For this example we begin at this step
-```{r}
+For this workflow example we begin at this step
+```{r  message=FALSE, warning=FALSE}
+yourPathToDestinRepo = "~/Documents/gitRepos/destin"
+# install.packages(file.path(yourPathToDestinRepo,"package"), repos = NULL, type = "source")
+library(destin, quietly = T)
+sampleName = "PreisslP56"
+outDir = file.path(yourPathToDestinRepo, "practice/PreisslP56")
+model = "mm10"
 load(file.path(outDir, "peaks", "PreisslP56Annotated.Rdata"))
 ```
 
@@ -352,18 +354,30 @@ rse = doQC(rse, regionSumCutoff = 5, cellSumCutoffSDs = 3)
 
 ## 3.7. Determine number of clusters
 
-Destin uses an unsupervised model-based likelihood to estimate number of clusters. Like WCSSE, the likelihood is non-decreasing with increasing number of clusters.  We fit the model log-likelihood as a linear spline function of number of clusters with a single knot. The knot placement which results in the best fit (lowest sum of squared errors) is selected as number of clusters.
+Destin uses an unsupervised model-based likelihood to estimate number of clusters. Like WCSSE, the likelihood is non-decreasing with increasing number of clusters.  We fit the model log-likelihood as a linear spline function of number of clusters with a single knot. The knot placement which results in the best fit (lowest sum of squared errors) is selected as number of clusters (n_k).
+
+Also shown are results using 4 other methods to estimate number of clusters:
+
+wcsseElbow: They fit WCSSE as a linear spline function of k with a single knot. The knot placement which results in the best fit (lowest sum of squared errors) is selected as n_k
+
+silhouette: n_k is selected as the number of clusters that maximizes average silhouette width across all cells
+
+distortion: accounts for the decrease in WCSSE by comparing to a baseline model incorporating a weight factor based on number of dimensions
+
+GapStat: The gap (Tibshirani et al., 2001) statistic accounts for the tendency to overestimate n_k by using a permutation approach and fitting a null distribution to the WCSSE which naturally decreases as n_k increases. Then the empirical WCSSE is compared to the null distribution with the gap statistic as output. To select the number of clusters the “first SE” method is used which determines the first nk where the gap statistic is within 1 standard deviation of the following gap statistic.
 
 We search a space of 1 to 20 number of clusters (user-modifiable). Here we find 5 clusters. 
 
 ```{r eval = FALSE}
 set.seed(10)
 nClustersMax = 20
-clusterEst = estimateNClusters(rse,   nClustersMax = nClustersMax)
+clusterEst = estimateNClusters(rse, nClustersMax = nClustersMax)
 ```
 
+Precomputed results are loaded below.  Estimated number of clusters shown in blue by method.
+
 ```{r}
-load("~/Desktop/clusterEst.Rdata") 
+load(system.file("results", "clusterEstPreisslP56.Rdata", package = "destin"))
 plotNClusters(clusterEst)
 ```
 
@@ -381,13 +395,13 @@ TSSWeightsList = list(c(1,1),c(1,2))
 DHSWeightsList = list(c(1,1), c(1,3))
 sampleName = "PreisslP56"
 nClusters = 5
-clusterResults = destinGrid (rse, sampleName,
+results = destinGrid (rse, sampleName,
                       PCrange = PCrange,
                       TSSWeightsList = TSSWeightsList,
                       DHSWeightsList = DHSWeightsList,
                       nClusters = nClusters,
                       nCores = nCores)
-colData(rse)$cluster = clusterResults$cluster$cluster
+colData(rse)$cluster = results$cluster$cluster
 ```
 
 
@@ -398,14 +412,37 @@ cluster 3: excitatory neurons
 cluster 4: oligodendrocytes
 cluster 5: inhibitory neuron 2
 
-We can visualize the clustering results using t-SNE, using default parameters.  Note that we do not expect tSNE to match up precisely with our clustering results as we do not use tSNE to cluster.  It is for visual purposes only.
+We can visualize the clustering results using t-SNE, using default parameters.  Note that we do not expect tSNE to match up precisely with our clustering results as we do not use tSNE to cluster.  tSNE contains a high level of variability, which can be verified by setting the seed.  It is for broad visual purposes only.
 
 Annotation by cell type is optional, as cell type is unknown in practice. 
 ```{r}
-plotClusterTsne(rse, clusterResults, 
-                clusterLabels = c("IN1", "NG", "EX", "OC", "IN2"))
+set.seed(5)
+plotClusterTsne(results, c("IN1", "NG", "EX", "OC", "IN2"))
 ```
 
+
+For completeness, we show that raising the number of clusters resolves microglia and astrocyte cell types.  Downstream analysis retains 5 clusters, however, as we assume we did not know the true number of cell types.
+```{r}
+PCrange = 10
+TSSWeightsList = list(c(1,2))
+DHSWeightsList = list(c(1,3))
+nClusters = 6
+set.seed(5)
+clusterResults6 = destinGrid (rse, sampleName,
+                      PCrange = PCrange,
+                      TSSWeightsList = TSSWeightsList,
+                      DHSWeightsList = DHSWeightsList,
+                      nClusters = nClusters)
+plotClusterTsne(clusterResults6, c("OC", "IN1", "IN2", "EX", "AC", "MG"))
+```
+
+Next we reassign cells by maximizing each cell's post-classification multinomial likelihood. The input to the multinomial model is the chromatin accessibility count matrix and the cell cluster assignments.  In this example there is no change in clustering assignment
+```{r}
+countMat = assay(rse)
+cluster = results$cluster$cluster
+logLikeMatrix = getLogLike(countMat, cluster, sum = F)
+clusterReassigned = apply(logLikeMatrix, 1, which.max)
+```
 
 ## 3.9. Differential Accessibility
 
