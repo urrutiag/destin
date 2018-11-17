@@ -10,7 +10,12 @@ export(annotateRSE,
   doQC,
   plotNClusters,
   plotClusterTsne,
-  getEWCE
+  getEWCE,
+  getSpecQuantiles,
+  annotateMouseToHuman,
+  aggregateRSEByGene,
+  getGeneAccessibility,
+  getQuantsForMagma
 )
 
 import(
