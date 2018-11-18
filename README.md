@@ -93,19 +93,23 @@ Output: cluster membership, differential accessibility
 
 ## Example Workflows
 
--Buenrostro mouse cells, Fluidigm microfluidic technology 
+-Bioinformatics and Clustering: Buenrostro mouse cells, Fluidigm microfluidic technology 
 [html](https://rawgit.com/urrutiag/destin/master/package/vignettes/destinBuenrostroMouse.html)
 [markdown](https://github.com/urrutiag/destin/blob/master/package/vignettes/destinBuenrostroMouse.Rmd)
 
--Preissl P56 forebrain mouse cells, combinatorial barcode technology
+-Clustering: Preissl P56 forebrain mouse cells, combinatorial barcode technology
 [html](https://rawgit.com/urrutiag/destin/master/package/vignettes/destinPreisslP56.html)
 [markdown](https://github.com/urrutiag/destin/blob/master/package/vignettes/destinPreisslP56.Rmd)
+
+-GWAS cell-type specific association: Preissl P56 forebrain mouse cells 
+[html](https://rawgit.com/urrutiag/destin/master/package/vignettes/GWAS.html)
+[markdown](https://github.com/urrutiag/destin/blob/master/package/vignettes/GWAS.Rmd)
 
 ## Citations
 
 ## Developers & Maintainers
 
-* Gene Urrutia (urrutia at email dot unc dot edu)
+* Gene Urrutia (gene.urrutia at gmail dot com)
   <br>
   Department of Biostatistics, UNC-Chapel Hill
 

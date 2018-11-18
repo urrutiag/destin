@@ -1,104 +1,106 @@
 ---
-title: "Cell-type Specific GWAS"
-output: html_document
+title: "Cluster Specific GWAS"
+output:
+  rmarkdown::html_document:
+    highlight: pygments
+    toc: true
 ---
 
-todo: 
-arrange all files
-fix bugs
-try to add additional description
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+# 1. Data
+- P56 forebrain mouse scATAC-seq from Preissl et al.
+- GEO GSE100033 
+- 5 primary cell types (8 sub types)
+- Combinatorial barcode technology
+- 2088 cells (post QC) (50 cells in our toy example)
+- original fastq files contain all 3034 cells combined
 
-Cell-type Specific GWAS 
 
-load libraries and set paths
+load libraries and set paths, set packageDir to the path where you have cloned the git repository
 ```{r message=FALSE, warning=FALSE}
-library(destin, quietly = T)
 packageDir = "~/Documents/gitRepos/destin"
+install.packages(file.path(packageDir,"package"), repos = NULL, type = "source")
+library(destin, quietly = T)
 gwasDir = "~/Dropbox/Gene_shared/scATACseq/articles/GWAS"
 outDir = "~/Documents/statGenGit/GWASout" 
 ```
 
-Load clustered chromatin accessibility summarized experiment
+
+Load clustered chromatin accessibility summarized experiment. QC and annotate clusters.
 ```{r}
 load(file.path(packageDir, "practice/PreisslP56/peaks/PreisslP56Annotated.Rdata"))
+rse = doQC(rse)
 clusterData = fread(file.path(packageDir, "practice/gwas/p56DestinResultsFinalCluster.csv"))
 colData(rse)$cluster = clusterData$cluster
 ```
 
-# Process chromatin accessiblility data for cell-type specific GWAS
+# 2. Process chromatin accessiblility data for cell-type specific GWAS
 
 To prepare for cell-type specific GWAS association, we must:
 - provide human annotation for the chromatin accessible regions.
 - aggregate the binary signal across peaks within each gene
 - calculate cell type specificity for chromatin accessibility by gene
 
-## Conversion from mouse annotation to human annnotation
+## 2.1. Conversion from mouse annotation to human annnotation
 
 GWAS predominantly use human subjects, while our data set is mouse forebrain.  Thus we need to utilize a series of 3 conversions to map the accessible regions to HGNC and Entrez ID.
 
 annotated peak feature (mouse) -> MGI symbol  (mouse) -> HGNC symbol (human) -> Entrez ID (human) 
 
-### MGI symbol (Mouse)
+### 2.1.1. MGI symbol (Mouse)
 MGI symbol is mapped according to ensembl_gene_id, which was annotated during the Destin clustering ("TSS.mouse.GRCm38" from the R ChIPpeakAnnopackage).  We use the BioMart dataset "mmusculus_gene_ensembl" to map to MGI symbol.
 
 The mmusculus conversion data frame "mmusculusConversion.Rdata" is preinstalled with Destin
 
-### HGNC (Human) via Mouse-Human homolog
+### 2.1.2. HGNC (Human) via Mouse-Human homolog
 Next, we map mouse to human gene using homolog list "HOM_MouseHumanSequence.rpt" from MGI. Only genes with 1 to 1 homolog mapping were retained. 
 
 "HOM_MouseHumanSequence.rpt" is preinstalled with Destin
 
-### Entrez ID (Human)
+### 2.1.3. Entrez ID (Human)
 
 Finally, we use bioMart again to map to Entrez ID, after which accessible regions were aggregated by gene.
 
 The hsapiens conversion data frame "hsapiensConversion.Rdata" is preinstalled with Destin.
 
-### Annotation results
+### 2.1.4. Annotation results
 ```{r}
 rse = annotateMouseToHuman(rse)
 rowRanges(rse)
 ```
 
 
-## Aggregate chromatin acessibility by gene 
+## 2.2. Aggregate chromatin acessibility by gene 
 
 The summarized experiment now contains multiple accessible peaks per entrez ID.  Thus we aggregate across peaks within gene to create a chromatin accessiblity matrix that is no longer binary.
 
-### create list of aggregated chromatin accessibility by entrez ID 
 This step is high processing, thus it is recommended to run in parallel, but that is optional.  It is also high memory, thus we use sparseMatrix format.
 
-The output of the intermediate step is a list, length the number of genes.  Each element of the list contains rowData which contains the gene info.  Each element also contains a sparse vector, length the number of cells.
+The output is an aggregated summarized experiment where rows are genes by entrez ID
 
-Then the list is combined to create an aggregated summarized experiment where rows are genes by entrez ID
-
-```{r eval=FALSE}
+```{r}
 nCores = 7
 se = aggregateRSEByGene(rse, nCores = nCores)
 ```
 
 
-## Calculate Cell type specificity for chromatin accessilbilty by gene
+## 2.3. Calculate Cell type specificity for chromatin accessilbilty by gene
 
 This step calculates the proportion of total accessibility by cell type.  This is required input for magma and EWCE.
 
 The result is a stacked data frame containing the cell type specificity for each gene - cell type combination.  cell type specificity is calculated as the ratio between the cell type accessibility and the total accessibility across all cell types.
 
 ```{r}
-getGeneAccessibility(se)
+geneAccessibility = getGeneAccessibility(se)
 geneAccessibility[hgncSymbol == "XKR4"]
 ```
 
 
-# Apply GWAS
+
+# 3. EWCE for GWAS accessbility association
 
 Now we determine whether GWAS results are associated with increased accessibility in a particular cell type.  We utilize 2 methods originally developed for scRNA-seq expression: ECWE and MAGMA.
 
-## EWCE
 Expression Weighted Celltype Enrichment (ECWC) (Skene and Grant, 2016). While magma tests for trend in SNP p-value over increasing cell type specificty, ECWC tests whether the set of significant SNPs are more specific to cell type than are a random set of SNPs. 
 
 The empirical score = sum of cellTypeSpecificity from the geneAccessibility data frame only within the snpGenes, specific by cell type.
@@ -113,6 +115,8 @@ Here we perform EWCE for 3 GWAS studies:
 "alzLambert.csv": Alzheimers 
 "parkNalls.csv": Parkinsons
 "SCZ_PGC.tsv": Schizophrenia
+
+## 3.1. Prepare SNP lists
 
 we begin by processing the significant snp files 
 
@@ -129,6 +133,8 @@ names(geneLists) = fileNames
 str(geneLists)
 ```
 
+## 3.2. Perform GWAS association via EWCE
+
 then we call getEWCE individually for each significant snp list, and annotate the result and combine
 ```{r}
 set.seed(10)
@@ -139,17 +145,19 @@ names(resultsEWCEList) = names(geneLists)
 resultsEWCEList
 ```
 
-The result is a data frame with p-value, foldChange, sd from mean for each cell type by study
+## 3.3. Results
+
+The result is a data frame with p-value, foldChange, sd from mean for each cluster study
 ```{r}
 resultsEWCEList
 ```
 
 
-# MAGMA
+# 4. MAGMA for GWAS accessibility association
 
 We used the GWAS association tool magma to test for associate with GWAS SNPs. We first called annotate with window size 10kb upstream and 1.5kb downstream of transcribed region. All 3 GWAS sets used hg19. Annotated SNPs were aggregated by gene to a single p-value. The magma model adjusts for covariance in SNP p-values due to linkage disequilibrium. 
 
-As done by Skeene et al., we binned the cell type specificity into 40 quantiles, with an additional binned for regions with no accessibility. The cell type specific bin was used as the feature vector for association testing. Finally test for trend between cell type specificity was performed. 
+As done by Skeene et al., we binned the cell type specificity into 40 quantiles, with an additional bin for regions with no accessibility. The cell type specific bin was used as the feature vector for association testing. Finally test for trend between cell type specificity was performed. 
 
 Magma accounts for gene size, log gene size, gene density, and log gene density. Gene density accounts for the linkage disequilibrium between SNPs in the gene. The model also incorporates correlations between genes.
 
@@ -159,7 +167,7 @@ MAGMA input
 - specificity quantiles
 
 
-## Create specificity quantile matrix 
+## 4.1. Create specificity quantile matrix 
 We convert the cell type specific accessibility from the geneAccessibility data frame to 40 binned quantiles.
 
 The specificity quantile matrix must be printed to file, as it is required by magma using the terminal (shell) command line.
@@ -182,13 +190,15 @@ Comparing the quantsForMagma to geneAccessibility, we see that genes in which a 
 geneAccessibility[entrezID == 1]
 ```
 
-## Get GWAS full data
+## 4.2. Get GWAS full data
 Load the GWAS data set and prepare to be read by magma.  Columns and names must be ordered appropriately:  "SNP", "CHR", "BP", "P"; corresponding to SNP ID, chromosome, base pair position, and p-value.  
 
 The prepared GWAS data must be printed to file, as it is required by magma using the terminal (shell) command line.
 
+Please download "ckqny.scz2snpres.gz"" from http://www.med.unc.edu/pgc/files/resultfiles/scz2.snp.results.txt.gz/view
+
 ```{r}
-schizophreniaSNPsFile = file.path(magmaDir, "ckqny.scz2snpres.gz")
+schizophreniaSNPsFile = file.path(magmaDir, "scz/ckqny.scz2snpres.gz")
 data = fread(schizophreniaSNPsFile, fill=TRUE)
 
 #format SNP data for magma
@@ -201,39 +211,39 @@ head(dataReorder)
 ```
 
 
-## run magma via terminal (shell) command line 
+## 4.3. run magma via terminal (shell) command line 
 
-### set paramaters
+### 4.3.1. set paramaters
 for installation, documentation, and troubleshooting, see https://ctg.cncr.nl/software/magma
 calls below require the path to magma be included in the system path, here we assign by: PATH=$PATH:/Users/urrutia/Applications/magma_v1.06c_mac
 
-```{bash}
+```{bash eval=FALSE}
 packageDir=~/Documents/gitRepos/destin
 PATH=$PATH:~/Applications/magma_v1.07b_mac
 magmaDir=$packageDir/practice/gwas/magma
 magmaOutDir=$magmaDir/magmaOut
 ```
 
-### annotation
+### 4.3.2. annotation
 The  SNP  location  file  should  contain three  columns:  SNP ID,  chromosome,  and  basepair  position. These  should  be  the  first  three  columns  in  that  file  (additional  columns  are ignored).   
 
 This step requires a file of gene locations, using build 37.  We include this file as part of destin.  Please see https://ctg.cncr.nl/software/magma if another build is required.
 
-```{bash}
+```{bash eval=FALSE}
 magma --annotate window=10,1.5 \
 --snp-loc $magmaOutDir/ckqny.scz2snpres.reorderd.txt \
 --gene-loc $packageDir/practice/gwas/magma/NCBI37.3.gene.loc  \
 --out $magmaOutDir/SCZ2014
 ```
 
-### Gene wise p-values and covariance
+### 4.3.3. Gene wise p-values and covariance
 Magma adjusts for covariates in order to produce a biologically appropriate p-value to each gene.
 
 Magma accounts for gene size, log gene size, gene density, and log gene density. Gene density accounts for the linkage disequilibrium between SNPs in the gene. The model also incorporates correlations between genes.
 
 A reference file from Phase 3 of 1000 genomes project is required for this step, and here we use the European ancestry file.  Please download from https://ctg.cncr.nl/software/magma.  The location is assigned by the --bfile command.
 
-```{bash}
+```{bash eval=FALSE}
 magma --bfile  $magmaDir/g1000_eur/g1000_eur \
 --gene-model snp-wise=mean \
 --pval $magmaOutDir/ckqny.scz2snpres.reorderd.txt use=SNP,P N=10000 \
@@ -241,17 +251,17 @@ magma --bfile  $magmaDir/g1000_eur/g1000_eur \
 --out $magmaOutDir/SCZ2014
 ```
 
-### Gene property analysis
+### 4.3.4. Gene property analysis
 
 Now mamga tests for association between cluster specific accessibility quantiles and significant genes (aggregated SNPs) for each cell cluster.
 
-```{bash}
+```{bash eval=FALSE}
 magma --gene-results $magmaOutDir/SCZ2014.genes.raw \
 --gene-covar $magmaOutDir/quantsForMagma.tsv  \
 --out $magmaOutDir/SCZ2014
 ```
 
-### Magma results
+### 4.3.5. Magma results
 
 The results are below, precomputed and saved in upstream folder.  Again we see strong association between cluster specific accessibility quantiles and significant genes (aggregated SNPs) for cluster number 1 corresponding to interneuron 1.
 
@@ -259,6 +269,7 @@ This indicates that genes that are associated with schizophrenia are specificall
 
 ```{r}
 #pMagmaData = readLines(file.path(magmaOutDir, "SCZ2014.gsa.out"))
+# we read the precomputed results
 pMagmaData = readLines(file.path(magmaDir, "SCZ2014.gsa.out"))
 pMagmaData
 ```
