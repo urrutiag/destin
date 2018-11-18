@@ -40,12 +40,11 @@ getEWCE = function( geneAccessibility, geneList, nBoot = 1000 ) {
 
 annotateMouseToHuman = function(rse){
   
-  gwasDir = "~/Dropbox/Gene_shared/scATACseq/articles/GWAS"
-  
+
   # MGI symbol (Mouse)
   # mart = useMart(biomart="ensembl", dataset="mmusculus_gene_ensembl")
   # conversion = getBM(attributes = c("ensembl_gene_id", "mgi_symbol"), mart=mart)
-  load("~/Dropbox/Gene_shared/scATACseq/destin/archive/package/inst/mart/mmusculusConversion.Rdata")
+  load( system.file("mart/mmusculusConversion.Rdata", package = "destin") )
   elementMetadata(rse)$mgi_symbol = 
     conversion$mgi_symbol[
       match(elementMetadata(rse)$feature, 
@@ -53,8 +52,7 @@ annotateMouseToHuman = function(rse){
       ]
   
   # HGNC (Human) via Mouse-Human homolog
-  homData = fread(file.path(gwasDir, "HOM_MouseHumanSequence.rpt"), 
-                  check.names=T)
+  homData = fread( system.file("mart/HOM_MouseHumanSequence.rpt", package = "destin") )
   mouseHomData = homData[Common.Organism.Name == "mouse, laboratory", .(Symbol, HomoloGene.ID)]
   elementMetadata(rse)$HomoloGene.ID = 
     mouseHomData$HomoloGene.ID[match(
@@ -71,8 +69,7 @@ annotateMouseToHuman = function(rse){
   # Entrez ID (Human)
   # mart = useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
   # conversion = getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "entrezgene"), mart=mart)
-  # save(conversion, file = "~/Dropbox/Gene_shared/scATACseq/destin/package/inst/mart/hsapiensConversion.Rdata")
-  load("~/Dropbox/Gene_shared/scATACseq/destin/archive/package/inst/mart/hsapiensConversion.Rdata")
+  load( system.file("mart/hsapiensConversion.Rdata", package = "destin") )
   elementMetadata(rse)$entrezID = 
     conversion$entrezgene[match(
       elementMetadata(rse)$humanSymbol,
