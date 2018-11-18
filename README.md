@@ -4,6 +4,8 @@ This is the Jiang lab scATAC-seq processing and cell clustering pipeline.
 
 ## Manuscript
 
+Urrutia, Eugene, et al. "Destin: toolkit for single-cell analysis of chromatin accessibility." bioRxiv (2018): 461905. [link](https://www.biorxiv.org/content/early/2018/11/05/461905?rss=1)
+
 ## Questions & issues
   If you have any questions or problems when using destin, please feel free to open a new issue [here](https://github.com/urrutiag/destin/issues). You can also email the maintainers of the corresponding packages -- the contact information is below.
   
@@ -91,6 +93,11 @@ Output: cluster membership, differential accessibility
 - cluster cells by destin which optimizes hyperparameters via multinomial likelihood
 - calculate differential accessibility
 
+### GWAS association
+
+Determine whether GWAS results are associated with increased chromatin accessibility in a particular cell type cluster.  We utilize 2 methods originally developed for scRNA-seq expression: ECWE and MAGMA.
+
+
 ## Example Workflows
 
 -Bioinformatics and Clustering: Buenrostro mouse cells, Fluidigm microfluidic technology 
@@ -107,9 +114,16 @@ Output: cluster membership, differential accessibility
 
 ## Citations
 
+de Leeuw, C. A., et al. (2015). Magma: generalized gene-set analysis of gwas data.
+PLoS comput. biol., 11 (4), e1004219.
+
+Skene,  N. G. et al. (2016).   Identification of vulnerable cell types in major brain
+disorders  using  single  cell  transcriptomes  and  expression  weighted  cell  type
+enrichment. Front. neurosci-switz,10, 16.
+
 ## Developers & Maintainers
 
-* Gene Urrutia (gene.urrutia at gmail dot com)
+* Gene Urrutia (gene dot urrutia at gmail dot com)
   <br>
   Department of Biostatistics, UNC-Chapel Hill
 

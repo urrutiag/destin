@@ -37,5 +37,5 @@ results = destinGrid (rse, sampleName,
                       nCores = nCores)
                       
 plotClusterTsne(results)
-
+}
 \keyword{ package }

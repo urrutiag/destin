@@ -30,5 +30,5 @@ clusterEst = estimateNClusters(rse, nClustersMax = nClustersMax)
 
 plotNClusters(clusterEst)
                       
-
+}
 \keyword{ package }
