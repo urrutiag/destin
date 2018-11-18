@@ -20,8 +20,19 @@ cd yourPathToDestinRepo
 git clone https://github.com/urrutiag/destin.git
 ```
 
-Running the R package requires either installing from the above git repostory locally
+install dependencies
 ```r
+installed <- rownames(installed.packages())
+pkgs = c("ChIPpeakAnno", "cluster", "ClusterR", "data.table", 
+         "GenomicAlignments", "ggplot2", "gridExtra", "irlba",  "Matrix", 
+         "parallel", "rtracklayer", "Rtsne")
+pkgs <- setdiff(pkgs, installed)
+if (length(pkgs))
+  install.packages(pkgs, dep=c("Depends", "Imports"))
+```
+
+Running the R package requires either installing from the above git repostory locally
+```{r} 
 install.packages("yourPathToDestinRepo/package", repos = NULL, type = "source")
 library(destin)
 ```
@@ -39,9 +50,20 @@ library(destin)
             samtools, picard, MACS2, bedtools, awk,
             R, python
 
-- R packages:  ChIPpeakAnno, data.table, GenomicAlignments,
- ggplot2, irlba, Matrix, parallel, rtracklayer
-
+- R packages:  
+ ChIPpeakAnno, 
+ cluster,
+ ClusterR,
+ data.table, 
+ GenomicAlignments,
+ ggplot2,
+ gridExtra,
+ irlba, 
+ Matrix, 
+ parallel, 
+ rtracklayer,
+ Rtsne
+ 
 ## Overview 
 
 ### Bioinformatics Pipeline
