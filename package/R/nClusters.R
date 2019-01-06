@@ -58,17 +58,21 @@ estimateNClusters = function(rse, nClustersMax = 20){
   nClustersList$silhouette = which.max(metricsList$silhouetteStats)
   
   #distortion
-  distortionStats = try(
-    ClusterR::Optimal_Clusters_KMeans(
-      data = projNormMat, 
-      max_clusters = max(clusterVec), 
-      plot_clusters = F, 
-      criterion = "distortion_fK")
-    , silent = T)
-  if (class(class(metricsList$distortionStats)) != "try-error")
-  {
-    metricsList$distortionStats = as.vector(distortionStats)
-    nClustersList$distortion = which.min(metricsList$distortionStats)
+  if ( "ClusterR" %in% rownames(installed.packages()) ) {
+    distortionStats = try(
+      ClusterR::Optimal_Clusters_KMeans(
+        data = projNormMat, 
+        max_clusters = max(clusterVec), 
+        plot_clusters = F, 
+        criterion = "distortion_fK")
+      , silent = T)
+    if (class(class(metricsList$distortionStats)) != "try-error")
+    {
+      metricsList$distortionStats = as.vector(distortionStats)
+      nClustersList$distortion = which.min(metricsList$distortionStats)
+    } 
+  } else {
+    print("ClusterR package not installed: distortion statistic unavailable")
   }
   
   #gap
@@ -91,11 +95,10 @@ estimateNClusters = function(rse, nClustersMax = 20){
 }
 
 
-
 plotNClusters = function(clusterEst){
   nClustersMax = length(clusterEst$metricsList[[1]])
   pList = list()
-  for (j in 1:5){
+  for (j in seq_len(length(clusterEst$metricsList))){
     select = rep(FALSE, nClustersMax)
     select[clusterEst$nClustersList[[j]]] = TRUE
     myData = data.frame(x = 1:nClustersMax, 

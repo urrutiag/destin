@@ -23,12 +23,16 @@ git clone https://github.com/urrutiag/destin.git
 install dependencies
 ```r
 installed <- rownames(installed.packages())
-pkgs = c("ChIPpeakAnno", "cluster", "ClusterR", "data.table", 
+pkgs = c("ChIPpeakAnno", "cluster", "data.table", 
          "GenomicAlignments", "ggplot2", "gridExtra", "irlba",  "Matrix", 
          "parallel", "rtracklayer", "Rtsne")
 pkgs <- setdiff(pkgs, installed)
 if (length(pkgs))
   install.packages(pkgs, dep=c("Depends", "Imports"))
+  
+ClusterR is an optional package:
+if ( ! "ClusterR" %in% rownames(installed.packages() )
+  install.packages("ClusterR", dep=c("Depends", "Imports"))
 ```
 
 Running the R package requires either installing from the above git repostory locally
@@ -37,7 +41,7 @@ install.packages("yourPathToDestinRepo/package", repos = NULL, type = "source")
 library(destin)
 ```
 
-or downloading from github directly (note that this will not allow for the bioinformatics pipeline or the vignette):
+or downloading from github directly (note that this will not allow for the bioinformatics pipeline or the vignettes):
 ```r
 install.packages("devtools")
 devtools::install_github("urrutiag/destin/package")
@@ -53,7 +57,6 @@ library(destin)
 - R packages:  
  ChIPpeakAnno, 
  cluster,
- ClusterR,
  data.table, 
  GenomicAlignments,
  ggplot2,
@@ -64,6 +67,9 @@ library(destin)
  rtracklayer,
  Rtsne
  
+- Optional R packages:
+ ClusterR
+  
 ## Overview 
 
 ### Bioinformatics Pipeline

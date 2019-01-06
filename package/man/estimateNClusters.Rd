@@ -12,7 +12,7 @@ wcsseElbow: They fit WCSSE as a linear spline function of k with a single knot. 
 
 silhouette: n_k is selected as the number of clusters that maximizes average silhouette width across all cells
 
-distortion: accounts for the decrease in WCSSE by comparing to a baseline model incorporating a weight factor based on number of dimensions
+distortion: accounts for the decrease in WCSSE by comparing to a baseline model incorporating a weight factor based on number of dimensions.  Distortion requires ClusterR, which is suggested but not a dependency for Destin.
 
 GapStat: The gap (Tibshirani et al., 2001) statistic accounts for the tendency to overestimate n_k by using a permutation approach and fitting a null distribution to the WCSSE which naturally decreases as n_k increases. Then the empirical WCSSE is compared to the null distribution with the gap statistic as output. To select the number of clusters the “first SE” method is used which determines the first nk where the gap statistic is within 1 standard deviation of the following gap statistic.
 }
@@ -35,7 +35,7 @@ nClustersEstimate: number of clusters pertaining to the best fit
 }
 
 \author{
- Gene Urrutia \email{urrutia@email.unc.edu} 
+ Gene Urrutia \email{gene.urrutia@gmail.com} 
 }
 \examples{
 library(destin)

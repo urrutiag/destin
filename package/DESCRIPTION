@@ -10,7 +10,6 @@ LazyData: true
 Depends: R (>= 3.4.3),
  ChIPpeakAnno, 
  cluster,
- ClusterR,
  data.table, 
  GenomicAlignments,
  ggplot2,
@@ -20,4 +19,6 @@ Depends: R (>= 3.4.3),
  parallel, 
  rtracklayer,
  Rtsne
+Suggests:  
+ ClusterR
 

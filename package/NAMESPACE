@@ -21,7 +21,6 @@ export(annotateRSE,
 import(
   ChIPpeakAnno, 
   cluster,
-  ClusterR,
   data.table, 
   GenomicAlignments, 
   ggplot2,
