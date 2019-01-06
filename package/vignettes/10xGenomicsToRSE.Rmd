@@ -1,0 +1,99 @@
+---
+title: "Convert 10x genomics chromatin accessibility matrix to ranged summarized experiment"
+output:
+  rmarkdown::html_document:
+    highlight: pygments
+    toc: true
+---
+
+# Introduction
+
+In this example we use the following data set: 
+
+500 1:1 mixture of fresh frozen human (GM12878) and mouse (A20) cells
+
+Single Cell ATAC Dataset by Cell Ranger ATAC 1.0.1
+
+1:1 mixture of human (GM12878) and mouse (A20) cells.This is a classic human-mouse mixture experiment to demonstrate single cell behavior.
+
+- ~750 transposed nuclei were loaded.
+- 481 human and 352 mouse nuclei were recovered.
+- Sequenced on Illumina NovaSeq with approximately 24k read pairs per cell.
+- 50bp read1, 8bp i7 (sample index), 16bp i5 (10x Barcode), 49bp read2.
+- Published on December 17, 2018
+
+This dataset is licensed under the Creative Commons Attribution license.
+
+https://support.10xgenomics.com/single-cell-atac/datasets/1.0.1/atac_v1_hgmm_500
+
+10x uses Cell Ranger ATAC 1.0.1 for bioinformatic processing and produces a peak by cell matrix. 
+
+
+# Download Data
+
+Download the file corresponding to Peak by cell matrix (filtered)	148.77 MB	87faab53ab541ab5f5d5af3b9748917b 
+
+We download the peak by cell matrix via the terminal using curl, although other options are available on thier webpage. 
+
+```{bash eval=F}
+cd localDir10xData
+curl -O http://cf.10xgenomics.com/samples/cell-atac/1.0.1/atac_v1_pbmc_10k/atac_v1_pbmc_10k_filtered_peak_bc_matrix.tar.gz
+```
+
+Unpack the tar.gz download via the terminal (method may depend on operating system)
+
+```{bash eval=F}
+tar -xzf atac_v1_pbmc_10k_filtered_peak_bc_matrix.tar.gz
+```
+
+The resulting folder contains 3 files:
+
+- matrix.mtx:  peak by cell chromatin accessiblilty matrix in MatrixMarket format.  We can use R package "Matrix" to read straight to a sparse matrix
+- peaks.bed bed file:  corresponding to rows of matrix.mtx
+- barcodes.tsv:  barcodes corresponding to columns of matrix.mtx
+
+
+# Create ranged summarized experiment from 10x peak by cell matrix 
+
+set data10xDir to appropriate local folder
+```{r}
+data10xDir = "~/Dropbox/Documents/statGen/scATACseq/10xgenomics/atac_v1_hgmm_500/filtered_peak_bc_matrix"
+```
+
+install destin R package
+```{r  message=FALSE}
+yourPathToDestinRepo = "~/Documents/gitRepos/destin"
+install.packages(file.path(yourPathToDestinRepo,"package"), repos = NULL, type = "source")
+```
+
+load Destin
+```{r  message=FALSE}
+suppressMessages( library(destin, quietly = T) )
+```
+
+Create ranged summarized experiment from 10x peak by cell matrix 
+```{r}
+rse = createRSEfrom10xMatrix(data10xDir)
+```
+
+here is a description of the ranged summarized experiment  
+
+column data is a description of the cells
+```{r}
+colData(rse)
+```
+
+rowRanges is a description of the peaks
+```{r}
+rowRanges(rse)
+```
+
+assay is the binary chromatin accessibility matrix in sparse matrix format
+
+- rows are peaks 
+- columns are cells
+
+```{r}
+assay(rse)[1:10,1:10]
+```
+

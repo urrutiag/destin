@@ -26,7 +26,7 @@ ranged summarized experiment containing region by cell accessiblity matrix, regi
 }
 
 \author{
- Gene Urrutia \email{urrutia@email.unc.edu} 
+ Gene Urrutia \email{gene.urrutia@gmail.com} 
 }
 \examples{
 library(destin)

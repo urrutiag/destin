@@ -21,7 +21,7 @@ Ranged summarized experiment containing row ranges with annotated regions.  Anno
 }
 
 \author{
- Gene Urrutia \email{urrutia@email.unc.edu} 
+ Gene Urrutia \email{gene.urrutia@gmail.com} 
 }
 \examples{
 library(destin)

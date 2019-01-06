@@ -27,7 +27,7 @@ Result is a QC'd ranged summarized experiment and is meant to replace input.
 }
 
 \author{
- Gene Urrutia \email{urrutia@email.unc.edu} 
+ Gene Urrutia \email{gene.urrutia@gmail.com} 
 }
 \examples{
 library(destin)

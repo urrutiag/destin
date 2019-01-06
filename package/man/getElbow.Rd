@@ -21,7 +21,7 @@ Vector of sum squared errors for each value of knot.  The lowest value is select
 }
 
 \author{
- Gene Urrutia \email{urrutia@email.unc.edu} 
+ Gene Urrutia \email{gene.urrutia@gmail.com} 
 }
 \examples{
 library(destin)

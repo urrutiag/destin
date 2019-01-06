@@ -128,17 +128,22 @@ Determine whether GWAS results are associated with increased chromatin accessibi
 
 ## Example Workflows
 
--Bioinformatics and Clustering: Buenrostro mouse cells, Fluidigm microfluidic technology 
+- Bioinformatics and Clustering: Buenrostro mouse cells, Fluidigm microfluidic technology 
 [html](https://rawgit.com/urrutiag/destin/master/package/vignettes/destinBuenrostroMouse.html)
 [markdown](https://github.com/urrutiag/destin/blob/master/package/vignettes/destinBuenrostroMouse.Rmd)
 
--Clustering: Preissl P56 forebrain mouse cells, combinatorial barcode technology
+- Clustering: Preissl P56 forebrain mouse cells, combinatorial barcode technology
 [html](https://rawgit.com/urrutiag/destin/master/package/vignettes/destinPreisslP56.html)
 [markdown](https://github.com/urrutiag/destin/blob/master/package/vignettes/destinPreisslP56.Rmd)
 
--GWAS cell-type specific association: Preissl P56 forebrain mouse cells 
+- GWAS cell-type specific association: Preissl P56 forebrain mouse cells 
 [html](https://rawgit.com/urrutiag/destin/master/package/vignettes/GWAS.html)
 [markdown](https://github.com/urrutiag/destin/blob/master/package/vignettes/GWAS.Rmd)
+
+- Convert 10x genomics chromatin accessibility matrix to ranged summarized experiment
+[html](https://rawgit.com/urrutiag/destin/master/package/vignettes/10xGenomicsToRSE.html)
+[markdown](https://github.com/urrutiag/destin/blob/master/package/vignettes/10xGenomicsToRSE.Rmd)
+
 
 ## Citations
 
@@ -153,7 +158,7 @@ enrichment. Front. neurosci-switz,10, 16.
 
 * Gene Urrutia (gene dot urrutia at gmail dot com)
   <br>
-  Department of Biostatistics, UNC-Chapel Hill
+  Hill-Rom Innovation, Cary, NC
 
 * [Yuchao Jiang](http://sph.unc.edu/adv_profile/yuchao-jiang-phd/) (yuchaoj at email dot unc dot edu)
   <br>

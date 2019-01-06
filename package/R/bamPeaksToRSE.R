@@ -40,6 +40,21 @@ createRSE = function(bamDir, bamFiles, bedData){
   
 }
 
+createRSEfrom10xMatrix = function(data10xDir)
+{
+  
+  barcodes = read.table( file.path(data10xDir, "barcodes.tsv"), sep = "\t")
+  
+  bedData = rtracklayer::import(file.path(data10xDir, "peaks.bed"), format = "BED")
+  
+  countsMat = Matrix::readMM(file.path(data10xDir,"matrix.mtx"))
+  countsMat[countsMat > 1] = 1
+  
+  rse = SummarizedExperiment::SummarizedExperiment(assays=list(counts=countsMat),
+                                                   rowRanges=bedData, colData=barcodes)
+  return(rse)
+}
+
 
 annotateRSE = function(rse, model){
   

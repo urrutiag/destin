@@ -40,7 +40,7 @@ The second item is the clustering result.
 }
 
 \author{
-  Gene Urrutia \email{urrutia@email.unc.edu} 
+  Gene Urrutia \email{gene.urrutia@gmail.com} 
 }
 \examples{
 library(destin)

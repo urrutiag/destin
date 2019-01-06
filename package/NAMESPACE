@@ -1,5 +1,6 @@
 export(annotateRSE,
   createRSE,
+  createRSEfrom10xMatrix,
   destinGrid,
   getDestin,
   getLogLike,

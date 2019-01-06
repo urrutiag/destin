@@ -27,7 +27,7 @@ Results of destin are a data.frame containing one row for each choice of number 
 }
 
 \author{
- Gene Urrutia \email{urrutia@email.unc.edu} 
+ Gene Urrutia \email{gene.urrutia@gmail.com} 
 }
 \examples{
 library(destin)

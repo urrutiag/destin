@@ -24,7 +24,7 @@ Results are appended to the row ranges of ranged summarized experiment and is me
 }
 
 \author{
- Gene Urrutia \email{urrutia@email.unc.edu} 
+ Gene Urrutia \email{gene.urrutia@gmail.com} 
 }
 \examples{
 library(destin)
