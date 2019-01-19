@@ -1,6 +1,7 @@
 
 getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1), 
-                     nClusters, outCluster = F){
+                     nClusters, outCluster = F, 
+                     depthAdjustment = "postPCA"){
   
   # for normalization
   cellSumPostQC = colData(rse)$cellSumPostQC
@@ -9,18 +10,29 @@ getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1),
   countMatOG = assay(rse)  
   
   ### weight the regions
-  rowRanges(rse)$TSSMetric[rowRanges(rse)$region == "promoter"] = TSSWeights[1] 
-  rowRanges(rse)$TSSMetric[rowRanges(rse)$region == "distal element"] = TSSWeights[2]
-  rowRanges(rse)$DHSMetric =  dbeta( rowRanges(rse)$DHSsum/100 + .01, DHSWeights[1], DHSWeights[2]) 
-  rowRanges(rse)$regionWeight = 
-    (rowRanges(rse)$TSSMetric / mean(rowRanges(rse)$TSSMetric)) * 
-    (rowRanges(rse)$DHSMetric / mean(rowRanges(rse)$DHSMetric)) 
-  rse = rse[rowRanges(rse)$regionWeight > 0]
+  if ( (TSSWeights != c(1,1)) | (DHSWeights != c(1,1)) ) {
+    rowRanges(rse)$TSSMetric[rowRanges(rse)$region == "promoter"] = TSSWeights[1] 
+    rowRanges(rse)$TSSMetric[rowRanges(rse)$region == "distal element"] = TSSWeights[2]
+    rowRanges(rse)$DHSMetric =  dbeta( rowRanges(rse)$DHSsum/100 + .01, DHSWeights[1], DHSWeights[2]) 
+    rowRanges(rse)$regionWeight = 
+      (rowRanges(rse)$TSSMetric / mean(rowRanges(rse)$TSSMetric)) * 
+      (rowRanges(rse)$DHSMetric / mean(rowRanges(rse)$DHSMetric)) 
+    rse = rse[rowRanges(rse)$regionWeight > 0]
+    
+    X = assay(rse) * rowRanges(rse)$regionWeight  
+  } else {
+    X = assay(rse)
+  }
   
   # DR and cluster ---------------------------------------------
   set.seed(10)
   
-  X = assay(rse) * rowRanges(rse)$regionWeight  
+  if (depthAdjustment == "prePCA") {
+    X_depthPre = t( t(X) / colData(rse)$cellSumPostQC )
+    X = X_depthPre
+    print("adjusting pre PCA")
+  }
+  
   pca = try(
     irlba(t(X), nv = max(PCrange))
   )
@@ -28,9 +40,15 @@ getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1),
   
   results = lapply (PCrange, function(myNPC) {
     projection = t(X) %*% pca$v[, 1:myNPC]
-    projectionNorm = projection / cellSumPostQC
+    
+    if (depthAdjustment == "postPCA") {
+      projectionNorm = projection / cellSumPostQC
+      projection = projectionNorm
+      print("adjusting post PCA")
+    }
+    
     kfit = try(
-      kmeans(projectionNorm, centers = nClusters, nstart = 100)
+      kmeans(projection, centers = nClusters, nstart = 100)
     )
     if (class(kfit) == "try-error") return (NULL)
     logLike =  getLogLike(countMatOG, kfit$cluster)
@@ -39,7 +57,7 @@ getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1),
                                      logLike = logLike),
                  cluster = data.frame(cellID = rse$cellID,
                                       cluster = kfit$cluster),
-                 PCs = projectionNorm
+                 PCs = projection
     ))
   } ) 
   

@@ -2,7 +2,8 @@ destinGrid = function(rse, sampleName,
                          PCrange = 3:25,
                          TSSWeightsList = list(c(1,2), c(1,1.5), c(1,1.25), c(1,1)),
                          DHSWeightsList = list(c(1,1), c(1,2), c(1,3), c(1,5)),
-                         nClusters, nCores=NULL, writeOut=F, outDir=NULL){
+                         nClusters, nCores=NULL, writeOut=F, outDir=NULL,
+                      depthAdjustment = "postPCA" ){
   
   weightGrid = expand.grid(TSSIndex = seq_along(TSSWeightsList), 
                            DHSIndex = seq_along(DHSWeightsList))
@@ -16,12 +17,14 @@ destinGrid = function(rse, sampleName,
     clusterEvalQ(cl, library(data.table))
     clusterExport(cl, list("rse", "TSSWeightsList", "DHSWeightsList", "weightGrid",
                            "getDestin", "PCrange", "getLogLike","dmultFast" ,
-                           "sampleName", "nClusters"), envir = environment())
+                           "sampleName", "nClusters", "depthAdjustment")
+                  , envir = environment())
     resultsList = parLapply(cl, 1:nrow(weightGrid), function(gridRow) {
       TSSWeights = TSSWeightsList[[weightGrid[gridRow,]$TSSIndex]] 
       DHSWeights = DHSWeightsList[[weightGrid[gridRow,]$DHSIndex]]
       result =  try(getDestin( rse, PCrange=PCrange, TSSWeights=TSSWeights, 
-                              DHSWeights=DHSWeights, nClusters = nClusters) 
+                              DHSWeights=DHSWeights, nClusters = nClusters,
+                              depthAdjustment = depthAdjustment) 
                     )
       if (class(result) == "try-error") return(NULL)
       return(result)
@@ -34,7 +37,8 @@ destinGrid = function(rse, sampleName,
       TSSWeights = TSSWeightsList[[weightGrid[gridRow,]$TSSIndex]] 
       DHSWeights = DHSWeightsList[[weightGrid[gridRow,]$DHSIndex]]
       result =  try(getDestin( rse, PCrange=PCrange, TSSWeights=TSSWeights, 
-                              DHSWeights=DHSWeights, nClusters = nClusters) 
+                              DHSWeights=DHSWeights, nClusters = nClusters,
+                              depthAdjustment = depthAdjustment) 
                     )
       if (class(result) == "try-error") return(NULL)
       return(result)
@@ -51,7 +55,8 @@ destinGrid = function(rse, sampleName,
   DHSWeightsOpt = c(resultsMaxLike$DHSWeight1, resultsMaxLike$DHSWeight2)
   resultFinal = try(
     getDestin(rse, PCrange = nPCsOpt, TSSWeight = TSSWeightsOpt, 
-              DHSWeight = DHSWeightsOpt, outCluster=T, nClusters = nClusters)
+              DHSWeight = DHSWeightsOpt, outCluster=T, nClusters = nClusters,
+              depthAdjustment = depthAdjustment)
   )
   
   if(writeOut){
