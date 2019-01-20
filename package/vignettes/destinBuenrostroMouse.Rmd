@@ -6,7 +6,11 @@ output:
     toc: true
 ---
 
-For this example we begin at this step 3.1. Load Destin R package.  Previous steps are described for reference.
+For this example we begin at this step 3.1. Load Destin R package.  Previous steps are described for reference.  Estimated time to run: ~ 1 minute.
+
+```{r}
+startTime = Sys.time()
+```
 
 # 1. Data
 - Mouse scATAC-seq from Buenrostro et al. 
@@ -416,4 +420,10 @@ Results of differential accessibility (top 10 p-values per cluster)
 rowRanges(rse)[order(rowRanges(rse)$pValsCor_1, decreasing = F)][1:10, c("feature", "pValsCor_1", "log2FC_1")] 
 
 rowRanges(rse)[order(rowRanges(rse)$pValsCor_2, decreasing = F)][1:10, c("feature", "pValsCor_2", "log2FC_2")] 
+```
+
+Time to run 
+```{r}
+TotalTime = Sys.time() - startTime
+TotalTime
 ```

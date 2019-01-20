@@ -40,7 +40,6 @@ getEWCE = function( geneAccessibility, geneList, nBoot = 1000 ) {
 
 annotateMouseToHuman = function(rse){
   
-
   # MGI symbol (Mouse)
   # mart = useMart(biomart="ensembl", dataset="mmusculus_gene_ensembl")
   # conversion = getBM(attributes = c("ensembl_gene_id", "mgi_symbol"), mart=mart)
@@ -52,7 +51,8 @@ annotateMouseToHuman = function(rse){
       ]
   
   # HGNC (Human) via Mouse-Human homolog
-  homData = fread( system.file("mart/HOM_MouseHumanSequence.rpt", package = "destin") )
+  homData = fread( system.file("mart/HOM_MouseHumanSequence.rpt", package = "destin"), 
+                   check.names=TRUE)
   mouseHomData = homData[Common.Organism.Name == "mouse, laboratory", .(Symbol, HomoloGene.ID)]
   elementMetadata(rse)$HomoloGene.ID = 
     mouseHomData$HomoloGene.ID[match(

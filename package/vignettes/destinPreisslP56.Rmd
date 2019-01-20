@@ -10,6 +10,8 @@ For this workflow example we begin at this step 3.5. Load rse.
 
 Previous steps are described for reference.
 
+Approximate run time: ~ 5 min
+
 # 1. Data
 - P56 forebrain mouse scATAC-seq from Preissl et al.
 - GEO GSE100033 
@@ -226,6 +228,10 @@ Specifically, Destin incorporates biological weights for chromatin accessible re
 
 - 20 cells (out of 192) in this Destin toy example
 
+```{r}
+startTime = Sys.time()
+```
+
 ## 3.1. Load Destin R package
 
 Please see the README.md for instructions to install the github repository.  You can install the R package from the local copy.  yourPathToDestinRepo is your path to the local cloned repository
@@ -356,7 +362,7 @@ rse = doQC(rse, regionSumCutoff = 5, cellSumCutoffSDs = 3)
 
 Destin uses an unsupervised model-based likelihood to estimate number of clusters. Like WCSSE, the likelihood is non-decreasing with increasing number of clusters.  We fit the model log-likelihood as a linear spline function of number of clusters with a single knot. The knot placement which results in the best fit (lowest sum of squared errors) is selected as number of clusters (n_k).
 
-Also shown are results using 4 other methods to estimate number of clusters:
+Also shown for display purposes are results using 4 other methods to estimate number of clusters:
 
 wcsseElbow: They fit WCSSE as a linear spline function of k with a single knot. The knot placement which results in the best fit (lowest sum of squared errors) is selected as n_k
 
@@ -366,7 +372,10 @@ distortion: accounts for the decrease in WCSSE by comparing to a baseline model 
 
 GapStat: The gap (Tibshirani et al., 2001) statistic accounts for the tendency to overestimate n_k by using a permutation approach and fitting a null distribution to the WCSSE which naturally decreases as n_k increases. Then the empirical WCSSE is compared to the null distribution with the gap statistic as output. To select the number of clusters the “first SE” method is used which determines the first nk where the gap statistic is within 1 standard deviation of the following gap statistic.
 
+Note: cluster::clusGap will produce warnings when computing the gap statistic.  The gap statistic is for display purposes only and not used by Destin, so this is not a need for concern.  
+
 We search a space of 1 to 20 number of clusters (user-modifiable). Here we find 5 clusters. 
+
 
 ```{r eval = FALSE}
 set.seed(10)
@@ -389,7 +398,8 @@ For each combination of TSS distance weights, DHS frequency weights, and number 
 A previous run with default tuning parameter options estimated the optimal parameters to be 10 PCs, TSS weights (1,2), higher weight to distal regulatory elements; and DHS weights (1,3), higher weight to rare chromatin accessible regions.  You may verify this by setting to default tuning parameter ranges, but this will take longer depending on number of cpu cores. Set nCores to an appropriate value based on your system.
 
 ```{r warning=FALSE}
-nCores = 3
+#set nCores to an appropriate value based on your system
+nCores = 7 
 PCrange = 10:11
 TSSWeightsList = list(c(1,1),c(1,2))
 DHSWeightsList = list(c(1,1), c(1,3))
@@ -416,8 +426,9 @@ We can visualize the clustering results using t-SNE, using default parameters.  
 
 Annotation by cell type is optional, as cell type is unknown in practice. 
 ```{r}
-set.seed(5)
-plotClusterTsne(results, c("IN1", "NG", "EX", "OC", "IN2"))
+set.seed(1)
+plotClusterTsne(clusterResults = results,
+                clusterLabels = c("IN1", "NG", "EX", "OC", "IN2"))
 ```
 
 
@@ -427,13 +438,17 @@ PCrange = 10
 TSSWeightsList = list(c(1,2))
 DHSWeightsList = list(c(1,3))
 nClusters = 6
-set.seed(5)
 clusterResults6 = destinGrid (rse, sampleName,
                       PCrange = PCrange,
                       TSSWeightsList = TSSWeightsList,
                       DHSWeightsList = DHSWeightsList,
                       nClusters = nClusters)
-plotClusterTsne(clusterResults6, c("OC", "IN1", "IN2", "EX", "AC", "MG"))
+```
+
+```{r}
+set.seed(1)
+plotClusterTsne(clusterResults6, 
+                clusterLabels = c("OC", "IN1", "IN2", "EX", "AC", "MG"))
 ```
 
 Next we reassign cells by maximizing each cell's post-classification multinomial likelihood. The input to the multinomial model is the chromatin accessibility count matrix and the cell cluster assignments.  In this example there is no change in clustering assignment
@@ -452,7 +467,7 @@ The output includes a genetic feature, Bonferroni corrected p-value and log2 fol
 
 ```{r}
 #set nCores to an appropriate value based on your system
-nCores = 3
+nCores = 7
 rse1000 = rse[1:1000,]
 rse1000 = getDiffAccess(rse1000, clusterMap = results$cluster, nCores = nCores)
 ```
@@ -462,4 +477,10 @@ Results of differential Accessibility: clusters 1 and 2
 rowRanges(rse1000)[order(rowRanges(rse1000)$pValsCor_1, decreasing = F)][1:10, c("feature", "pValsCor_1", "log2FC_1")] 
 
 rowRanges(rse1000)[order(rowRanges(rse1000)$pValsCor_2, decreasing = F)][1:10, c("feature", "pValsCor_2", "log2FC_2")] 
+```
+
+Time to run 
+```{r}
+TotalTime = Sys.time() - startTime
+TotalTime
 ```

@@ -5,7 +5,9 @@ output:
     highlight: pygments
     toc: true
 ---
+cell-type specific GWAS association
 
+Approximate run time: ~ 5 min
 
 # 1. Data
 - P56 forebrain mouse scATAC-seq from Preissl et al.
@@ -15,11 +17,14 @@ output:
 - 2088 cells (post QC) (50 cells in our toy example)
 - original fastq files contain all 3034 cells combined
 
+```{r}
+startTime = Sys.time()
+```
 
 load libraries and set paths, set packageDir to the path where you have cloned the git repository
 ```{r message=FALSE, warning=FALSE}
 packageDir = "~/Documents/gitRepos/destin"
-install.packages(file.path(packageDir,"package"), repos = NULL, type = "source")
+# install.packages(file.path(packageDir,"package"), repos = NULL, type = "source")
 library(destin, quietly = T)
 gwasDir = "~/Dropbox/Gene_shared/scATACseq/articles/GWAS"
 outDir = "~/Documents/statGenGit/GWASout" 
@@ -30,7 +35,7 @@ Load clustered chromatin accessibility summarized experiment. QC and annotate cl
 ```{r}
 load(file.path(packageDir, "practice/PreisslP56/peaks/PreisslP56Annotated.Rdata"))
 rse = doQC(rse)
-clusterData = fread(file.path(packageDir, "practice/gwas/p56DestinResultsFinalCluster.csv"))
+clusterData = fread(file.path(packageDir, "practice/gwas/Preisslp56Cluster.csv"))
 colData(rse)$cluster = clusterData$cluster
 ```
 
@@ -74,11 +79,14 @@ rowRanges(rse)
 
 The summarized experiment now contains multiple accessible peaks per entrez ID.  Thus we aggregate across peaks within gene to create a chromatin accessiblity matrix that is no longer binary.
 
-This step is high processing, thus it is recommended to run in parallel, but that is optional.  It is also high memory, thus we use sparseMatrix format.
+This step is high in computational processing, thus it is recommended to run in parallel, but that is optional.  It is also high in memory, thus we use sparseMatrix format.
 
 The output is an aggregated summarized experiment where rows are genes by entrez ID
 
+Set nCores to an appropriate value based on your system
+
 ```{r}
+# Set nCores to an appropriate value based on your system 
 nCores = 7
 se = aggregateRSEByGene(rse, nCores = nCores)
 ```
@@ -142,12 +150,13 @@ resultsEWCEList = lapply(seq_along(geneLists), function(geneListIndex){
   getEWCE(geneAccessibility, geneLists[[geneListIndex]])
 })
 names(resultsEWCEList) = names(geneLists)
-resultsEWCEList
 ```
 
 ## 3.3. Results
 
-The result is a data frame with p-value, foldChange, sd from mean for each cluster study
+The result is a data frame with p-value, foldChange, sd from mean for each cluster study.
+
+Cluster 1 associated with schizophrenia SNPs (3rd study):  p = 0.004.  
 ```{r}
 resultsEWCEList
 ```
@@ -274,3 +283,8 @@ pMagmaData = readLines(file.path(magmaDir, "SCZ2014.gsa.out"))
 pMagmaData
 ```
 
+Time to run 
+```{r}
+TotalTime = Sys.time() - startTime
+TotalTime
+```
