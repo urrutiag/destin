@@ -182,6 +182,8 @@ $(document).ready(function () {
 </ul>
 </div>
 
+<p>cell-type specific GWAS association</p>
+<p>Approximate run time (8 core macbook pro): ~ 6 min</p>
 <div id="data" class="section level1">
 <h1>1. Data</h1>
 <ul>
@@ -192,6 +194,7 @@ $(document).ready(function () {
 <li>2088 cells (post QC) (50 cells in our toy example)</li>
 <li>original fastq files contain all 3034 cells combined</li>
 </ul>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">startTime =<span class="st"> </span><span class="kw">Sys.time</span>()</code></pre></div>
 <p>load libraries and set paths, set packageDir to the path where you have cloned the git repository</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">packageDir =<span class="st"> &quot;~/Documents/gitRepos/destin&quot;</span>
 <span class="kw">install.packages</span>(<span class="kw">file.path</span>(packageDir,<span class="st">&quot;package&quot;</span>), <span class="dt">repos =</span> <span class="ot">NULL</span>, <span class="dt">type =</span> <span class="st">&quot;source&quot;</span>)
@@ -201,7 +204,7 @@ outDir =<span class="st"> &quot;~/Documents/statGenGit/GWASout&quot;</span> </co
 <p>Load clustered chromatin accessibility summarized experiment. QC and annotate clusters.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">load</span>(<span class="kw">file.path</span>(packageDir, <span class="st">&quot;practice/PreisslP56/peaks/PreisslP56Annotated.Rdata&quot;</span>))
 rse =<span class="st"> </span><span class="kw">doQC</span>(rse)
-clusterData =<span class="st"> </span><span class="kw">fread</span>(<span class="kw">file.path</span>(packageDir, <span class="st">&quot;practice/gwas/p56DestinResultsFinalCluster.csv&quot;</span>))
+clusterData =<span class="st"> </span><span class="kw">fread</span>(<span class="kw">file.path</span>(packageDir, <span class="st">&quot;practice/gwas/Preisslp56Cluster.csv&quot;</span>))
 <span class="kw">colData</span>(rse)<span class="op">$</span>cluster =<span class="st"> </span>clusterData<span class="op">$</span>cluster</code></pre></div>
 </div>
 <div id="process-chromatin-accessiblility-data-for-cell-type-specific-gwas" class="section level1">
@@ -290,9 +293,11 @@ clusterData =<span class="st"> </span><span class="kw">fread</span>(<span class=
 <div id="aggregate-chromatin-acessibility-by-gene" class="section level2">
 <h2>2.2. Aggregate chromatin acessibility by gene</h2>
 <p>The summarized experiment now contains multiple accessible peaks per entrez ID. Thus we aggregate across peaks within gene to create a chromatin accessiblity matrix that is no longer binary.</p>
-<p>This step is high processing, thus it is recommended to run in parallel, but that is optional. It is also high memory, thus we use sparseMatrix format.</p>
+<p>This step is high in computational processing, thus it is recommended to run in parallel, but that is optional. It is also high in memory, thus we use sparseMatrix format.</p>
 <p>The output is an aggregated summarized experiment where rows are genes by entrez ID</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">nCores =<span class="st"> </span><span class="dv">7</span>
+<p>Set nCores to an appropriate value based on your system</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Set nCores to an appropriate value based on your system </span>
+nCores =<span class="st"> </span><span class="dv">7</span>
 se =<span class="st"> </span><span class="kw">aggregateRSEByGene</span>(rse, <span class="dt">nCores =</span> nCores)</code></pre></div>
 </div>
 <div id="calculate-cell-type-specificity-for-chromatin-accessilbilty-by-gene" class="section level2">
@@ -348,35 +353,12 @@ geneLists =<span class="st"> </span><span class="kw">lapply</span>(fileNames, <s
 resultsEWCEList =<span class="st"> </span><span class="kw">lapply</span>(<span class="kw">seq_along</span>(geneLists), <span class="cf">function</span>(geneListIndex){
   <span class="kw">getEWCE</span>(geneAccessibility, geneLists[[geneListIndex]])
 })
-<span class="kw">names</span>(resultsEWCEList) =<span class="st"> </span><span class="kw">names</span>(geneLists)
-resultsEWCEList</code></pre></div>
-<pre><code>## $alzLambert.csv
-##    cluster pValue foldChange sd_from_mean
-## 1:       4  0.976  0.6842756  -1.81053179
-## 2:       2  0.098  1.1892859   1.29983011
-## 3:       3  0.367  1.0427030   0.30318715
-## 4:       5  0.317  1.0538552   0.42263228
-## 5:       1  0.449  1.0103079   0.06661755
-## 
-## $parkNalls.csv
-##    cluster pValue foldChange sd_from_mean
-## 1:       4  0.345  1.0569098    0.3085322
-## 2:       2  0.232  1.1081952    0.6592406
-## 3:       3  0.721  0.9021513   -0.6564246
-## 4:       5  0.528  0.9827863   -0.1291906
-## 5:       1  0.570  0.9590534   -0.2458018
-## 
-## $SCZ_PGC.tsv
-##    cluster pValue foldChange sd_from_mean
-## 1:       4  0.889  0.8876822   -1.2136889
-## 2:       2  1.000  0.7433052   -3.0042313
-## 3:       3  0.052  1.1347055    1.7971638
-## 4:       5  0.410  1.0146945    0.2129084
-## 5:       1  0.004  1.2201005    2.6003749</code></pre>
+<span class="kw">names</span>(resultsEWCEList) =<span class="st"> </span><span class="kw">names</span>(geneLists)</code></pre></div>
 </div>
 <div id="results" class="section level2">
 <h2>3.3. Results</h2>
-<p>The result is a data frame with p-value, foldChange, sd from mean for each cluster study</p>
+<p>The result is a data frame with p-value, foldChange, sd from mean for each cluster study.</p>
+<p>Cluster 1 associated with schizophrenia SNPs (3rd study): p = 0.004.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">resultsEWCEList</code></pre></div>
 <pre><code>## $alzLambert.csv
 ##    cluster pValue foldChange sd_from_mean
@@ -415,15 +397,16 @@ resultsEWCEList</code></pre></div>
 <p>The specificity quantile matrix must be printed to file, as it is required by magma using the terminal (shell) command line.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">magmaDir =<span class="st"> </span><span class="kw">file.path</span>(packageDir, <span class="st">&quot;practice/gwas/magma&quot;</span>)
 magmaOutDir =<span class="st"> </span><span class="kw">file.path</span>(magmaDir, <span class="st">&quot;magmaOut&quot;</span>)
+<span class="cf">if</span> (<span class="op">!</span><span class="kw">dir.exists</span>(magmaOutDir) )  <span class="kw">dir.create</span>(magmaOutDir)
 
 quantsForMagma =<span class="st"> </span><span class="kw">getQuantsForMagma</span>(geneAccessibility)
 <span class="kw">write.table</span>(quantsForMagma, 
             <span class="dt">file =</span> <span class="kw">file.path</span>(magmaOutDir, <span class="st">&quot;quantsForMagma.tsv&quot;</span>),
-            <span class="dt">row.names =</span> F, <span class="dt">quote =</span> F)
-quantsForMagma[entrezID <span class="op">==</span><span class="st"> </span><span class="dv">1</span>]</code></pre></div>
+            <span class="dt">row.names =</span> F, <span class="dt">quote =</span> F)</code></pre></div>
+<p>Comparing the quantsForMagma to geneAccessibility, we see that a gene (A1BG) in which a cluster has high cellTypeSpecificity receives a high quantile (cluster 1), and vice versa (cluster 2). The highest quantile is 40 and 0 indicates that there was no accessibility for any cell in the cluster.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">quantsForMagma[entrezID <span class="op">==</span><span class="st"> </span><span class="dv">1</span>]</code></pre></div>
 <pre><code>##    entrezID  1 2  3  4 5
 ## 1:        1 38 2 29 28 3</code></pre>
-<p>Comparing the quantsForMagma to geneAccessibility, we see that genes in which a cluster has high cellTypeSpecificity receives a high quantile (cluster 1), and vice versa (cluster 2). The highest quantile is 40 and 0 indicates that there was no accessibility for any cell in the cluster.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">geneAccessibility[entrezID <span class="op">==</span><span class="st"> </span><span class="dv">1</span>]</code></pre></div>
 <pre><code>##    hgncSymbol entrezID cluster accessibility totalAcrossTypes
 ## 1:       A1BG        1       4    0.04296875        0.1799735
@@ -440,9 +423,9 @@ quantsForMagma[entrezID <span class="op">==</span><span class="st"> </span><span
 </div>
 <div id="get-gwas-full-data" class="section level2">
 <h2>4.2. Get GWAS full data</h2>
+<p>Please download “ckqny.scz2snpres.gz”&quot; from <a href="http://www.med.unc.edu/pgc/files/resultfiles/scz2.snp.results.txt.gz/view" class="uri">http://www.med.unc.edu/pgc/files/resultfiles/scz2.snp.results.txt.gz/view</a></p>
 <p>Load the GWAS data set and prepare to be read by magma. Columns and names must be ordered appropriately: “SNP”, “CHR”, “BP”, “P”; corresponding to SNP ID, chromosome, base pair position, and p-value.</p>
 <p>The prepared GWAS data must be printed to file, as it is required by magma using the terminal (shell) command line.</p>
-<p>Please download “ckqny.scz2snpres.gz”&quot; from <a href="http://www.med.unc.edu/pgc/files/resultfiles/scz2.snp.results.txt.gz/view" class="uri">http://www.med.unc.edu/pgc/files/resultfiles/scz2.snp.results.txt.gz/view</a></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">schizophreniaSNPsFile =<span class="st"> </span><span class="kw">file.path</span>(magmaDir, <span class="st">&quot;scz/ckqny.scz2snpres.gz&quot;</span>)
 data =<span class="st"> </span><span class="kw">fread</span>(schizophreniaSNPsFile, <span class="dt">fill=</span><span class="ot">TRUE</span>)
 
@@ -463,6 +446,7 @@ dataReorder =<span class="st"> </span>data[,<span class="kw">c</span>(<span clas
 </div>
 <div id="run-magma-via-terminal-shell-command-line" class="section level2">
 <h2>4.3. run magma via terminal (shell) command line</h2>
+<p>the following code is in bash script, and is not run in this notebook</p>
 <div id="set-paramaters" class="section level3">
 <h3>4.3.1. set paramaters</h3>
 <p>for installation, documentation, and troubleshooting, see <a href="https://ctg.cncr.nl/software/magma" class="uri">https://ctg.cncr.nl/software/magma</a> calls below require the path to magma be included in the system path, here we assign by: PATH=$PATH:/Users/urrutia/Applications/magma_v1.06c_mac</p>
@@ -516,6 +500,10 @@ pMagmaData</code></pre></div>
 ##  [8] &quot;3            COVAR   14153    0.0013858     0.016008   0.00081748     0.090058&quot;                                    
 ##  [9] &quot;4            COVAR   14153   0.00026362    0.0031811   0.00077018      0.73214&quot;                                    
 ## [10] &quot;5            COVAR   14153    0.0010363     0.012351   0.00076929      0.17796&quot;</code></pre>
+<p>Time to run</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">TotalTime =<span class="st"> </span><span class="kw">Sys.time</span>() <span class="op">-</span><span class="st"> </span>startTime
+TotalTime</code></pre></div>
+<pre><code>## Time difference of 6.729351 mins</code></pre>
 </div>
 </div>
 </div>

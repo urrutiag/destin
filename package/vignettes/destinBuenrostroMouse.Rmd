@@ -6,7 +6,9 @@ output:
     toc: true
 ---
 
-For this example we begin at this step 3.1. Load Destin R package.  Previous steps are described for reference.  Estimated time to run: ~ 1 minute.
+For this example we begin at this step 3.1. Load Destin R package.  Previous steps are described for reference.  
+
+Approximate run time (8 core macbook pro): ~ 1 minute.
 
 ```{r}
 startTime = Sys.time()

@@ -7,7 +7,7 @@ output:
 ---
 cell-type specific GWAS association
 
-Approximate run time: ~ 5 min
+Approximate run time (8 core macbook pro): ~ 7 min 
 
 # 1. Data
 - P56 forebrain mouse scATAC-seq from Preissl et al.
@@ -24,7 +24,7 @@ startTime = Sys.time()
 load libraries and set paths, set packageDir to the path where you have cloned the git repository
 ```{r message=FALSE, warning=FALSE}
 packageDir = "~/Documents/gitRepos/destin"
-# install.packages(file.path(packageDir,"package"), repos = NULL, type = "source")
+install.packages(file.path(packageDir,"package"), repos = NULL, type = "source")
 library(destin, quietly = T)
 gwasDir = "~/Dropbox/Gene_shared/scATACseq/articles/GWAS"
 outDir = "~/Documents/statGenGit/GWASout" 
@@ -185,26 +185,30 @@ The specificity quantile matrix must be printed to file, as it is required by ma
 ```{r}
 magmaDir = file.path(packageDir, "practice/gwas/magma")
 magmaOutDir = file.path(magmaDir, "magmaOut")
+if (!dir.exists(magmaOutDir) )  dir.create(magmaOutDir)
 
 quantsForMagma = getQuantsForMagma(geneAccessibility)
 write.table(quantsForMagma, 
             file = file.path(magmaOutDir, "quantsForMagma.tsv"),
             row.names = F, quote = F)
-quantsForMagma[entrezID == 1]
 ```
 
-Comparing the quantsForMagma to geneAccessibility, we see that genes in which a cluster has high cellTypeSpecificity receives a high quantile (cluster 1), and vice versa (cluster 2).  The highest quantile is 40 and 0 indicates that there was no accessibility for any cell in the cluster.
+Comparing the quantsForMagma to geneAccessibility, we see that a gene (A1BG) in which a cluster has high cellTypeSpecificity receives a high quantile (cluster 1), and vice versa (cluster 2).  The highest quantile is 40 and 0 indicates that there was no accessibility for any cell in the cluster.
+
+```{r}
+quantsForMagma[entrezID == 1]
+```
 
 ```{r}
 geneAccessibility[entrezID == 1]
 ```
 
 ## 4.2. Get GWAS full data
+Please download "ckqny.scz2snpres.gz"" from http://www.med.unc.edu/pgc/files/resultfiles/scz2.snp.results.txt.gz/view
+
 Load the GWAS data set and prepare to be read by magma.  Columns and names must be ordered appropriately:  "SNP", "CHR", "BP", "P"; corresponding to SNP ID, chromosome, base pair position, and p-value.  
 
 The prepared GWAS data must be printed to file, as it is required by magma using the terminal (shell) command line.
-
-Please download "ckqny.scz2snpres.gz"" from http://www.med.unc.edu/pgc/files/resultfiles/scz2.snp.results.txt.gz/view
 
 ```{r}
 schizophreniaSNPsFile = file.path(magmaDir, "scz/ckqny.scz2snpres.gz")
@@ -221,6 +225,8 @@ head(dataReorder)
 
 
 ## 4.3. run magma via terminal (shell) command line 
+
+the following code is in bash script, and is not run in this notebook
 
 ### 4.3.1. set paramaters
 for installation, documentation, and troubleshooting, see https://ctg.cncr.nl/software/magma

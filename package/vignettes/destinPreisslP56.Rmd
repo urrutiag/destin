@@ -10,7 +10,7 @@ For this workflow example we begin at this step 3.5. Load rse.
 
 Previous steps are described for reference.
 
-Approximate run time: ~ 5 min
+Approximate run time (8 core macbook pro): ~ 5 min
 
 # 1. Data
 - P56 forebrain mouse scATAC-seq from Preissl et al.
