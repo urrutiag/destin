@@ -9,7 +9,7 @@ getElbow = function(measureVec, clusterVec){
   return(elbowMetric)
 }
 
-estimateNClusters = function(rse, nClustersMax = 20){
+estimateNClusters = function(rse, nClustersMax = 20, allMethods = T){
   
   clusterVec = 1:nClustersMax
   
@@ -46,46 +46,52 @@ estimateNClusters = function(rse, nClustersMax = 20){
   nClustersList$logLikeElbow = which.min(metricsList$logLikeElbow)
   nClustersList$wcsseElbow = which.min(metricsList$wcsseElbow)
   
-  #  silhouette
-  myDist = dist(projNormMat)
-  silhouetteStatsNot1 = sapply (2:max(clusterVec), function(myK)
-    { 
-    clusterKmeans = kmeans(projNormMat, myK, nstart = 100)
-    silhouetteOut = cluster::silhouette(clusterKmeans$cluster, myDist)
-    return ( summary(silhouetteOut)$avg.width )
-  })
-  metricsList$silhouetteStats = c(NA, silhouetteStatsNot1)
-  nClustersList$silhouette = which.max(metricsList$silhouetteStats)
   
-  #distortion
-  if ( "ClusterR" %in% rownames(installed.packages()) ) {
-    distortionStats = try(
-      ClusterR::Optimal_Clusters_KMeans(
-        data = projNormMat, 
-        max_clusters = max(clusterVec), 
-        plot_clusters = F, 
-        criterion = "distortion_fK")
-      , silent = T)
-    if (class(class(metricsList$distortionStats)) != "try-error")
-    {
-      metricsList$distortionStats = as.vector(distortionStats)
-      nClustersList$distortion = which.min(metricsList$distortionStats)
-    } 
-  } else {
-    print("ClusterR package not installed: distortion statistic unavailable")
-  }
-  
-  #gap
-  gap_statKmeans = try(
-    cluster::clusGap(projNormMat, FUN = kmeans,
-                                    K.max = max(clusterVec), B = 500)
-    , silent = T)
-  if (class(class(metricsList$distortionStats)) != "try-error")
-  {
-    metricsList$gap_statKmeans = gap_statKmeans$Tab[,3]
-    nClustersList$GapStat = cluster::maxSE(gap_statKmeans$Tab[,3], 
-                                           gap_statKmeans$Tab[,4], 
-                                           method = "firstSEmax")
+  if (allMethods == T){
+    
+    #  silhouette
+    myDist = dist(projNormMat)
+    silhouetteStatsNot1 = sapply (2:max(clusterVec), function(myK)
+      { 
+      clusterKmeans = kmeans(projNormMat, myK, nstart = 100)
+      silhouetteOut = cluster::silhouette(clusterKmeans$cluster, myDist)
+      return ( summary(silhouetteOut)$avg.width )
+    })
+    metricsList$silhouetteStats = c(NA, silhouetteStatsNot1)
+    nClustersList$silhouette = which.max(metricsList$silhouetteStats)
+    
+    #distortion
+    if ( "ClusterR" %in% rownames(installed.packages()) ) {
+      distortionStats = try(
+        ClusterR::Optimal_Clusters_KMeans(
+          data = projNormMat, 
+          max_clusters = max(clusterVec), 
+          plot_clusters = F, 
+          criterion = "distortion_fK")
+        , silent = T)
+      if (class(class(metricsList$distortionStats)) != "try-error")
+      {
+        metricsList$distortionStats = as.vector(distortionStats)
+        nClustersList$distortion = which.min(metricsList$distortionStats)
+      } 
+    } else {
+      print("ClusterR package not installed: distortion statistic unavailable")
+    }
+    
+    #gap
+    if (gap == T){
+      gap_statKmeans = try(
+        cluster::clusGap(projNormMat, FUN = kmeans,
+                                        K.max = max(clusterVec), B = 500)
+        , silent = T)
+      if (class(class(metricsList$distortionStats)) != "try-error")
+      {
+        metricsList$gap_statKmeans = gap_statKmeans$Tab[,3]
+        nClustersList$GapStat = cluster::maxSE(gap_statKmeans$Tab[,3], 
+                                               gap_statKmeans$Tab[,4], 
+                                               method = "firstSEmax")
+      }
+    }
   }
   
   out = list(nClustersList = nClustersList,

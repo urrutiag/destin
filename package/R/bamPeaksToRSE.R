@@ -28,11 +28,11 @@ createRSE = function(bamDir, bamFiles, bedData){
     fileName = fileNames
   ))
   
-  cellID = gsub(paste0(".",sampleName,".final.bam"),"", fileNames)
-  colData = data.table::data.table(data.frame(
-    cellID = cellID,
-    fileName = fileNames
-  ))
+  # cellID = gsub(paste0(".",sampleName,".final.bam"),"", fileNames)
+  # colData = data.table::data.table(data.frame(
+  #   cellID = cellID,
+  #   fileName = fileNames
+  # ))
 
   rse = SummarizedExperiment::SummarizedExperiment(assays=list(counts=countsMat),
                              rowRanges=bedData, colData=colData)
@@ -52,6 +52,11 @@ createRSEfrom10xMatrix = function(data10xDir)
   
   rse = SummarizedExperiment::SummarizedExperiment(assays=list(counts=countsMat),
                                                    rowRanges=bedData, colData=barcodes)
+
+  # filter out Y chrom
+  yIndex = seqnames(rowRanges(rse)) == "chrY"
+  rse = rse[!yIndex]
+    
   return(rse)
 }
 
@@ -75,6 +80,7 @@ annotateRSE = function(rse, model){
     data(TSS.mouse.GRCm38)
     annoFile = TSS.mouse.GRCm38  
   }
+  
   annotatedPeak = annotatePeakInBatch(rowRanges(rse), 
                                       AnnotationData=annoFile, 
                                       select = "first" )

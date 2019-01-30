@@ -52,11 +52,12 @@ getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1),
     )
     if (class(kfit) == "try-error") return (NULL)
     logLike =  getLogLike(countMatOG, kfit$cluster)
+    cluster = colData(rse) 
+    cluster$cluster = kfit$cluster
     return(list (summary = data.frame(nPCs = myNPC,
                                       nPeaksActual = nrow(X),
                                      logLike = logLike),
-                 cluster = data.frame(cellID = rse$cellID,
-                                      cluster = kfit$cluster),
+                 cluster = cluster,
                  PCs = projection
     ))
   } ) 

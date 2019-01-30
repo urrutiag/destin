@@ -10,15 +10,15 @@ output:
 
 In this example we use the following data set: 
 
-500 1:1 mixture of fresh frozen human (GM12878) and mouse (A20) cells
+5k Peripheral blood mononuclear cells (PBMCs) from a healthy donor
 
 Single Cell ATAC Dataset by Cell Ranger ATAC 1.0.1
 
-1:1 mixture of human (GM12878) and mouse (A20) cells.This is a classic human-mouse mixture experiment to demonstrate single cell behavior.
+Peripheral blood mononuclear cells (PBMCs) from a healthy donor.
 
-- ~750 transposed nuclei were loaded.
-- 481 human and 352 mouse nuclei were recovered.
-- Sequenced on Illumina NovaSeq with approximately 24k read pairs per cell.
+- ~6700 transposed nuclei were loaded.
+- 5335 nuclei were recovered.
+- Sequenced on Illumina NovaSeq with approximately 42k read pairs per cell.
 - 50bp read1, 8bp i7 (sample index), 16bp i5 (10x Barcode), 49bp read2.
 - Published on December 17, 2018
 
@@ -28,22 +28,27 @@ https://support.10xgenomics.com/single-cell-atac/datasets/1.0.1/atac_v1_hgmm_500
 
 10x uses Cell Ranger ATAC 1.0.1 for bioinformatic processing and produces a peak by cell matrix. 
 
+Approximate time to run(8 core macbook pro): ~ 2 minutes
+
+```{r}
+startTime = Sys.time()
+```
 
 # Download Data
 
-Download the file corresponding to Peak by cell matrix (filtered)	148.77 MB	87faab53ab541ab5f5d5af3b9748917b 
+Download the file corresponding to Peak by cell matrix (filtered)	97.86 MB	03ea4420a7bdaadd8c1cab8d4a0cf2e9
 
 We download the peak by cell matrix via the terminal using curl, although other options are available on thier webpage. 
 
 ```{bash eval=F}
 cd localDir10xData
-curl -O http://cf.10xgenomics.com/samples/cell-atac/1.0.1/atac_v1_pbmc_10k/atac_v1_pbmc_10k_filtered_peak_bc_matrix.tar.gz
+curl -O http://cf.10xgenomics.com/samples/cell-atac/1.0.1/atac_v1_pbmc_5k/atac_v1_pbmc_5k_filtered_peak_bc_matrix.tar.gz
 ```
 
 Unpack the tar.gz download via the terminal (method may depend on operating system)
 
 ```{bash eval=F}
-tar -xzf atac_v1_pbmc_10k_filtered_peak_bc_matrix.tar.gz
+tar -xzf atac_v1_pbmc_5k_filtered_peak_bc_matrix.tar.gz
 ```
 
 The resulting folder contains 3 files:
@@ -57,7 +62,7 @@ The resulting folder contains 3 files:
 
 set data10xDir to appropriate local folder
 ```{r}
-data10xDir = "~/Dropbox/Documents/statGen/scATACseq/10xgenomics/atac_v1_hgmm_500/filtered_peak_bc_matrix"
+data10xDir = "~/Dropbox/Documents/statGen/scATACseq/10xgenomics/atac_v1_pbmc_5k/filtered_peak_bc_matrix"
 ```
 
 install destin R package
@@ -95,5 +100,95 @@ assay is the binary chromatin accessibility matrix in sparse matrix format
 
 ```{r}
 assay(rse)[1:10,1:10]
+```
+
+# Cluster cells  
+
+We can now cluster a subset of cells and regions.
+
+For details, please see tutorials using Buenrostro cells or Preissl cells
+```{r}
+  sampleName = 'atac_v1_pbmc_5k'
+  nClusters = 10
+  model = "hg19"
+  # nCores = 7
+  # nCells = 100
+  # nRegions = 1000
+  # 
+  # # subset cells
+  # cellSamples = sample(1:ncol(rse), 100)
+  # rse = rse[,cellSamples]
+  # 
+  # # subset regions
+  # regionSamples = sample(1:nrow(rse), nRegions)
+  # rse = rse[regionSamples,]
+  
+  rse = annotateRSE(rse, model)
+  
+  rse = doQC(rse, regionSumCutoff = 5, cellSumCutoffSDs = 3)
+  
+  #clusterEst = estimateNClusters(rse, nClustersMax = 10, allMethods = F)
+  #nClusters = clusterEst$nClustersList$logLikeElbow
+```
+
+```{r}
+
+```
+
+
+Now do PCA through a python script
+```{r}
+# myMat = Matrix::readMM(file = file.path(tempDir, 'pca1.txt'))
+```
+
+```{r}
+tempDir = '~/Documents/temp'
+
+destinGridBig = function(rse, sampleName, tempDir,
+                         PCrange = 3:25,
+                         TSSParamList = list(c(1,2), c(1,1.5), c(1,1.25), c(1,1)),
+                         DHSParamList = list(c(1,1), c(1,2), c(1,3), c(1,5)),
+                         nClusters, nCores=NULL, writeOut=F, outDir=NULL){
+  # write count mat
+  dir.create(tempDir, showWarnings = F)
+  Matrix::writeMM(assay(rse), file = file.path(tempDir, 'countMat.mtx'))
+
+  cellSumPostQC = colData(rse)$cellSumPostQC
+
+  #calculate and write weights
+  weightGrid = expand.grid(TSSIndex = seq_along(TSSWeightsList), 
+                           DHSIndex = seq_along(DHSWeightsList))
+  weightMatrix = sapply(1:nrow(weightGrid), function(gridRow) {
+      TSSparams = TSSParamList[[weightGrid[gridRow,]$TSSIndex]] 
+      DHSparams = DHSParamList[[weightGrid[gridRow,]$DHSIndex]]
+      TSSweights = rep(0, nrow(rse))
+      TSSweights[rowRanges(rse)$region == "promoter"] = TSSparams[1]
+      TSSweights[rowRanges(rse)$region == "distal element"] = TSSparams[2]
+      DHSweights =  dbeta( rowRanges(rse)$DHSsum/100 + .01, DHSparams[1], DHSparams[2])
+      # rse = rse[rowRanges(rse)$regionWeight > 0]
+      regionWeights = ( TSSweights / mean(TSSweights) ) * ( DHSweights / mean(DHSweights) ) 
+      return(regionWeights)
+  } )
+  write.csv(weightMatrix, file = file.path(tempDir, 'weightMatrix.mtx'), row.names = F)
+}
+```
+
+
+```{r}
+tempDir = '~/Documents/temp'
+command = paste('python', file.path(yourPathToDestinRepo, 'src', 'pca.py'), tempDir)
+system(command)
+```
+
+```{r}
+  clusterResults = destinGrid (rse, sampleName, 
+                               nClusters = nClusters, nCores = 7)
+  clusterResults$cluster
+```
+
+Time to run
+```{r}
+TotalTime = Sys.time() - startTime
+TotalTime
 ```
 

@@ -23,7 +23,7 @@
 
 
 <style type="text/css">code{white-space: pre;}</style>
-<style type="text/css">
+<style type="text/css" data-origin="pandoc">
 div.sourceCode { overflow-x: auto; }
 table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
   margin: 0; padding: 0; vertical-align: baseline; border: none; }
@@ -59,7 +59,29 @@ code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
 code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
 code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
 code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+
 </style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
 <style type="text/css">
   pre:not([class]) {
     background-color: white;
@@ -122,6 +144,9 @@ img {
 button.code-folding-btn:focus {
   outline: none;
 }
+summary {
+  display: list-item;
+}
 </style>
 
 
@@ -129,14 +154,74 @@ button.code-folding-btn:focus {
 <div class="container-fluid main-container">
 
 <!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
 <script>
 $(document).ready(function () {
   window.buildTabsets("TOC");
 });
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
 </script>
 
 <!-- code folding -->
-
 
 
 
@@ -154,35 +239,39 @@ $(document).ready(function () {
 <ul>
 <li><a href="#introduction">Introduction</a></li>
 <li><a href="#download-data">Download Data</a></li>
-<li><a href="#create-ranged-summarized-experiment-from-10x-peak-by-cell-matrix">Create ranged summarized experiment from 10x peak by cell matrix</a></li>
+<li><a href="#create-ranged-summarized-experiment-from-10x-peak-by-cell-matrix">Create ranged summarized experiment from 10x peak by cell matrix</a><ul>
+<li><a href="#cluster-cells">Cluster cells</a></li>
+</ul></li>
 </ul>
 </div>
 
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
 <p>In this example we use the following data set:</p>
-<p>500 1:1 mixture of fresh frozen human (GM12878) and mouse (A20) cells</p>
+<p>5k Peripheral blood mononuclear cells (PBMCs) from a healthy donor</p>
 <p>Single Cell ATAC Dataset by Cell Ranger ATAC 1.0.1</p>
-<p>1:1 mixture of human (GM12878) and mouse (A20) cells.This is a classic human-mouse mixture experiment to demonstrate single cell behavior.</p>
+<p>Peripheral blood mononuclear cells (PBMCs) from a healthy donor.</p>
 <ul>
-<li>~750 transposed nuclei were loaded.</li>
-<li>481 human and 352 mouse nuclei were recovered.</li>
-<li>Sequenced on Illumina NovaSeq with approximately 24k read pairs per cell.</li>
+<li>~6700 transposed nuclei were loaded.</li>
+<li>5335 nuclei were recovered.</li>
+<li>Sequenced on Illumina NovaSeq with approximately 42k read pairs per cell.</li>
 <li>50bp read1, 8bp i7 (sample index), 16bp i5 (10x Barcode), 49bp read2.</li>
 <li>Published on December 17, 2018</li>
 </ul>
 <p>This dataset is licensed under the Creative Commons Attribution license.</p>
 <p><a href="https://support.10xgenomics.com/single-cell-atac/datasets/1.0.1/atac_v1_hgmm_500" class="uri">https://support.10xgenomics.com/single-cell-atac/datasets/1.0.1/atac_v1_hgmm_500</a></p>
 <p>10x uses Cell Ranger ATAC 1.0.1 for bioinformatic processing and produces a peak by cell matrix.</p>
+<p>Approximate time to run(8 core macbook pro): ~ 1 minute</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">startTime =<span class="st"> </span><span class="kw">Sys.time</span>()</code></pre></div>
 </div>
 <div id="download-data" class="section level1">
 <h1>Download Data</h1>
-<p>Download the file corresponding to Peak by cell matrix (filtered) 148.77 MB 87faab53ab541ab5f5d5af3b9748917b</p>
+<p>Download the file corresponding to Peak by cell matrix (filtered) 97.86 MB 03ea4420a7bdaadd8c1cab8d4a0cf2e9</p>
 <p>We download the peak by cell matrix via the terminal using curl, although other options are available on thier webpage.</p>
 <div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="bu">cd</span> localDir10xData
-<span class="ex">curl</span> -O http://cf.10xgenomics.com/samples/cell-atac/1.0.1/atac_v1_pbmc_10k/atac_v1_pbmc_10k_filtered_peak_bc_matrix.tar.gz</code></pre></div>
+<span class="ex">curl</span> -O http://cf.10xgenomics.com/samples/cell-atac/1.0.1/atac_v1_pbmc_5k/atac_v1_pbmc_5k_filtered_peak_bc_matrix.tar.gz</code></pre></div>
 <p>Unpack the tar.gz download via the terminal (method may depend on operating system)</p>
-<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">tar</span> -xzf atac_v1_pbmc_10k_filtered_peak_bc_matrix.tar.gz</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="fu">tar</span> -xzf atac_v1_pbmc_5k_filtered_peak_bc_matrix.tar.gz</code></pre></div>
 <p>The resulting folder contains 3 files:</p>
 <ul>
 <li>matrix.mtx: peak by cell chromatin accessiblilty matrix in MatrixMarket format. We can use R package “Matrix” to read straight to a sparse matrix</li>
@@ -193,20 +282,12 @@ $(document).ready(function () {
 <div id="create-ranged-summarized-experiment-from-10x-peak-by-cell-matrix" class="section level1">
 <h1>Create ranged summarized experiment from 10x peak by cell matrix</h1>
 <p>set data10xDir to appropriate local folder</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data10xDir =<span class="st"> &quot;~/Dropbox/Documents/statGen/scATACseq/10xgenomics/atac_v1_hgmm_500/filtered_peak_bc_matrix&quot;</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data10xDir =<span class="st"> &quot;~/Dropbox/Documents/statGen/scATACseq/10xgenomics/atac_v1_pbmc_5k/filtered_peak_bc_matrix&quot;</span></code></pre></div>
 <p>install destin R package</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">yourPathToDestinRepo =<span class="st"> &quot;~/Documents/gitRepos/destin&quot;</span>
 <span class="kw">install.packages</span>(<span class="kw">file.path</span>(yourPathToDestinRepo,<span class="st">&quot;package&quot;</span>), <span class="dt">repos =</span> <span class="ot">NULL</span>, <span class="dt">type =</span> <span class="st">&quot;source&quot;</span>)</code></pre></div>
 <p>load Destin</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">suppressMessages</span>( <span class="kw">library</span>(destin, <span class="dt">quietly =</span> T) )</code></pre></div>
-<pre><code>## Warning: package 'VennDiagram' was built under R version 3.4.4</code></pre>
-<pre><code>## Warning: package 'cluster' was built under R version 3.4.4</code></pre>
-<pre><code>## Warning: package 'data.table' was built under R version 3.4.4</code></pre>
-<pre><code>## Warning: package 'GenomicAlignments' was built under R version 3.4.4</code></pre>
-<pre><code>## Warning: package 'matrixStats' was built under R version 3.4.4</code></pre>
-<pre><code>## Warning: package 'ggplot2' was built under R version 3.4.4</code></pre>
-<pre><code>## Warning: package 'Matrix' was built under R version 3.4.4</code></pre>
-<pre><code>## Warning: package 'Rtsne' was built under R version 3.4.4</code></pre>
 <pre><code>## Warning: replacing previous import 'data.table::first' by
 ## 'GenomicAlignments::first' when loading 'destin'</code></pre>
 <pre><code>## Warning: replacing previous import 'data.table::last' by
@@ -218,38 +299,38 @@ $(document).ready(function () {
 <p>here is a description of the ranged summarized experiment</p>
 <p>column data is a description of the cells</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">colData</span>(rse)</code></pre></div>
-<pre><code>## DataFrame with 828 rows and 1 column
-##                     V1
-##               &lt;factor&gt;
-## 1   AAACGAACAGCGTCGT-1
-## 2   AAACGAAGTAACCATC-1
-## 3   AAACGAATCGGAAAGC-1
-## 4   AAACTGCCACCTGAAT-1
-## 5   AAACTGCGTGCTTTGA-1
-## ...                ...
-## 824 TTGTTGTTCAGGCCGT-1
-## 825 TTTACGTGTGTGAGGT-1
-## 826 TTTGCGCTCGAGTGTT-1
-## 827 TTTGGCCCAGGGTACA-1
-## 828 TTTGGTTAGAGACTCG-1</code></pre>
+<pre><code>## DataFrame with 5335 rows and 1 column
+##                      V1
+##                &lt;factor&gt;
+## 1    AAACGAAAGCGCAATG-1
+## 2    AAACGAAAGGGTATCG-1
+## 3    AAACGAAAGTAACATG-1
+## 4    AAACGAAAGTTACACC-1
+## 5    AAACGAACAGAGATGC-1
+## ...                 ...
+## 5331 TTTGTGTCACTCAAGT-1
+## 5332 TTTGTGTCACTGGGCT-1
+## 5333 TTTGTGTGTACGCAAG-1
+## 5334 TTTGTGTGTCTGCGCA-1
+## 5335 TTTGTGTTCAACTTGG-1</code></pre>
 <p>rowRanges is a description of the peaks</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">rowRanges</span>(rse)</code></pre></div>
-<pre><code>## GRanges object with 113505 ranges and 0 metadata columns:
-##             seqnames               ranges strand
-##                &lt;Rle&gt;            &lt;IRanges&gt;  &lt;Rle&gt;
-##        [1] hg19_chr1     [569175, 569649]      *
-##        [2] hg19_chr1     [713584, 714670]      *
-##        [3] hg19_chr1     [762348, 763234]      *
-##        [4] hg19_chr1     [801077, 801406]      *
-##        [5] hg19_chr1     [805062, 805564]      *
-##        ...       ...                  ...    ...
-##   [113501] mm10_chrY [90803134, 90803875]      *
-##   [113502] mm10_chrY [90804435, 90805999]      *
-##   [113503] mm10_chrY [90807476, 90807881]      *
-##   [113504] mm10_chrY [90808627, 90809078]      *
-##   [113505] mm10_chrY [90825190, 90825439]      *
+<pre><code>## GRanges object with 97824 ranges and 0 metadata columns:
+##           seqnames              ranges strand
+##              &lt;Rle&gt;           &lt;IRanges&gt;  &lt;Rle&gt;
+##       [1]     chr1         10245-10510      *
+##       [2]     chr1       237576-237942      *
+##       [3]     chr1       565099-565554      *
+##       [4]     chr1       569173-569645      *
+##       [5]     chr1       713422-715095      *
+##       ...      ...                 ...    ...
+##   [97820]     chrX 155049753-155050199      *
+##   [97821]     chrX 155070988-155071433      *
+##   [97822]     chrX 155110236-155111744      *
+##   [97823]     chrX 155196592-155196884      *
+##   [97824]     chrX 155227026-155227540      *
 ##   -------
-##   seqinfo: 45 sequences from an unspecified genome; no seqlengths</code></pre>
+##   seqinfo: 24 sequences from an unspecified genome; no seqlengths</code></pre>
 <p>assay is the binary chromatin accessibility matrix in sparse matrix format</p>
 <ul>
 <li>rows are peaks</li>
@@ -259,15 +340,64 @@ $(document).ready(function () {
 <pre><code>## 10 x 10 sparse Matrix of class &quot;dgTMatrix&quot;
 ##                          
 ##  [1,] . . . . . . . . . .
-##  [2,] . . . . . 1 . 1 . .
-##  [3,] . . 1 . . 1 . 1 . .
+##  [2,] . . . . . . . 1 . .
+##  [3,] . . 1 . . . . . . .
 ##  [4,] . . . . . 1 . . . .
-##  [5,] . . . . . . . . . .
-##  [6,] . . . . . . . . . .
-##  [7,] . . . . . . . 1 . .
-##  [8,] . . 1 . . . . . . .
-##  [9,] . 1 1 . . . . . . .
+##  [5,] 1 . 1 1 . . . 1 . 1
+##  [6,] 1 . . . . . . . . .
+##  [7,] 1 . 1 . . 1 . . . .
+##  [8,] . . . . . . . . . .
+##  [9,] . . 1 . . . . . . .
 ## [10,] . . . . . . . . . .</code></pre>
+<div id="cluster-cells" class="section level2">
+<h2>Cluster cells</h2>
+<p>We can now cluster a subset of cells and regions.</p>
+<p>For details, please see tutorials using Buenrostro cells or Preissl cells</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">  sampleName =<span class="st"> 'atac_v1_pbmc_5k'</span>
+  nClusters =<span class="st"> </span><span class="dv">10</span>
+  model =<span class="st"> &quot;hg19&quot;</span>
+  nCores =<span class="st"> </span><span class="dv">7</span>
+  nCells =<span class="st"> </span><span class="dv">100</span>
+  nRegions =<span class="st"> </span><span class="dv">1000</span>
+
+  <span class="co"># subset cells</span>
+  cellSamples =<span class="st"> </span><span class="kw">sample</span>(<span class="dv">1</span><span class="op">:</span><span class="kw">ncol</span>(rse), <span class="dv">100</span>)
+  rse =<span class="st"> </span>rse[,cellSamples]
+  
+  <span class="co"># subset regions</span>
+  regionSamples =<span class="st"> </span><span class="kw">sample</span>(<span class="dv">1</span><span class="op">:</span><span class="kw">nrow</span>(rse), nRegions)
+  rse =<span class="st"> </span>rse[regionSamples,]
+  
+  rse =<span class="st"> </span><span class="kw">annotateRSE</span>(rse, model)
+  
+  rse =<span class="st"> </span><span class="kw">doQC</span>(rse, <span class="dt">regionSumCutoff =</span> <span class="dv">5</span>, <span class="dt">cellSumCutoffSDs =</span> <span class="dv">3</span>)
+  
+  clusterEst =<span class="st"> </span><span class="kw">estimateNClusters</span>(rse, <span class="dt">nClustersMax =</span> <span class="dv">10</span>, <span class="dt">allMethods =</span> F)
+  nClusters =<span class="st"> </span>clusterEst<span class="op">$</span>nClustersList<span class="op">$</span>logLikeElbow
+  
+  clusterResults =<span class="st"> </span><span class="kw">destinGrid</span> (rse, sampleName, 
+                               <span class="dt">nClusters =</span> nClusters, <span class="dt">nCores =</span> <span class="dv">7</span>)
+  
+  clusterResults<span class="op">$</span>cluster</code></pre></div>
+<pre><code>## DataFrame with 93 rows and 3 columns
+##                     V1 cellSumPostQC   cluster
+##               &lt;factor&gt;     &lt;numeric&gt; &lt;integer&gt;
+## 1   GGGTCTGGTATGGGTG-1            52         2
+## 2   ATGTCGAAGAACTCCT-1            44         1
+## 3   CACATGAGTACGTAGG-1           145         2
+## 4   GCTTAAGCAACATAAG-1           127         2
+## 5   GTAATCGGTGCTGTCG-1            37         1
+## ...                ...           ...       ...
+## 89  GTCACCTGTATGGTTC-1            61         1
+## 90  AGCCTTCTCTATCTAC-1           128         2
+## 91  GATGGCCAGCTGGAGT-1            55         1
+## 92  AACTTGGCAATGCACT-1            84         2
+## 93  ACTGTCCTCTACCCGT-1           102         2</code></pre>
+<p>Time to run</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">TotalTime =<span class="st"> </span><span class="kw">Sys.time</span>() <span class="op">-</span><span class="st"> </span>startTime
+TotalTime</code></pre></div>
+<pre><code>## Time difference of 1.569482 mins</code></pre>
+</div>
 </div>
 
 

@@ -8,7 +8,7 @@ Urrutia, Eugene, et al. "Destin: toolkit for single-cell analysis of chromatin a
 
 ## Questions & issues
   If you have any questions or problems when using destin, please feel free to open a new issue [here](https://github.com/urrutiag/destin/issues). You can also email the maintainers of the corresponding packages -- the contact information is below.
-  
+
 ## Installation
 
 The bioinformatic pipeline requires cloning the git repostory from github, where yourPathToDestinRepo is your path to the local cloned repository
@@ -23,20 +23,28 @@ git clone https://github.com/urrutiag/destin.git
 install dependencies
 ```r
 installed <- rownames(installed.packages())
-pkgs = c("ChIPpeakAnno", "cluster", "data.table", 
-         "GenomicAlignments", "ggplot2", "gridExtra", "irlba",  "Matrix", 
-         "parallel", "rtracklayer", "Rtsne")
+pkgs = c("cluster", "data.table", "ggplot2",
+         "gridExtra", "irlba",  "Matrix",
+         "parallel", "Rtsne")
 pkgs <- setdiff(pkgs, installed)
 if (length(pkgs))
   install.packages(pkgs, dep=c("Depends", "Imports"))
-  
-ClusterR is an optional package:
-if ( ! "ClusterR" %in% rownames(installed.packages() )
+
+biocPkgs = c("ChIPpeakAnno", "GenomicAlignments", "rtracklayer")
+biocPkgs <- setdiff(biocPkgs, installed)
+if (length(biocPkgs)) {
+  if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+  BiocManager::install(biocPkgs)
+}
+
+#ClusterR is an optional package:
+if ( ! "ClusterR" %in% rownames(installed.packages() ) )
   install.packages("ClusterR", dep=c("Depends", "Imports"))
 ```
 
 Running the R package requires either installing from the above git repostory locally
-```{r} 
+```{r}
 install.packages("yourPathToDestinRepo/package", repos = NULL, type = "source")
 library(destin)
 ```
@@ -50,31 +58,31 @@ library(destin)
 
 ## Dependencies
 
-- software: SRAtoolkit, cutadapt, BOWTIE2, 
+- software: SRAtoolkit, cutadapt, BOWTIE2,
             samtools, picard, MACS2, bedtools, awk,
             R, python
 
 - R packages:  
- ChIPpeakAnno, 
+ ChIPpeakAnno,
  cluster,
- data.table, 
+ data.table,
  GenomicAlignments,
  ggplot2,
  gridExtra,
- irlba, 
- Matrix, 
- parallel, 
+ irlba,
+ Matrix,
+ parallel,
  rtracklayer,
  Rtsne
- 
+
 - Optional R packages:
  ClusterR
-  
-## Overview 
+
+## Overview
 
 ### Bioinformatics Pipeline
 
-Input: fastq files of entire experiment or individual fastq files by cell, 
+Input: fastq files of entire experiment or individual fastq files by cell,
        set of 2 for each of paired reads
 
 Output: bam files by cell, peaks file
@@ -89,8 +97,8 @@ Output: bam files by cell, peaks file
 
 ---
 
-- cut adapters 
-- align 
+- cut adapters
+- align
 - sam to bam
 - sort
 - Add read group and index
@@ -128,7 +136,7 @@ Determine whether GWAS results are associated with increased chromatin accessibi
 
 ## Example Workflows
 
-- Bioinformatics and Clustering: Buenrostro mouse cells, Fluidigm microfluidic technology 
+- Bioinformatics and Clustering: Buenrostro mouse cells, Fluidigm microfluidic technology
 [html](https://rawgit.com/urrutiag/destin/master/package/vignettes/destinBuenrostroMouse.html)
 [markdown](https://github.com/urrutiag/destin/blob/master/package/vignettes/destinBuenrostroMouse.Rmd)
 
@@ -136,7 +144,7 @@ Determine whether GWAS results are associated with increased chromatin accessibi
 [html](https://rawgit.com/urrutiag/destin/master/package/vignettes/destinPreisslP56.html)
 [markdown](https://github.com/urrutiag/destin/blob/master/package/vignettes/destinPreisslP56.Rmd)
 
-- GWAS cell-type specific association: Preissl P56 forebrain mouse cells 
+- GWAS cell-type specific association: Preissl P56 forebrain mouse cells
 [html](https://rawgit.com/urrutiag/destin/master/package/vignettes/GWAS.html)
 [markdown](https://github.com/urrutiag/destin/blob/master/package/vignettes/GWAS.Rmd)
 
@@ -163,5 +171,3 @@ enrichment. Front. neurosci-switz,10, 16.
 * [Yuchao Jiang](http://sph.unc.edu/adv_profile/yuchao-jiang-phd/) (yuchaoj at email dot unc dot edu)
   <br>
   Department of Biostatistics & Department of Genetics, UNC-Chapel Hill
-
-
