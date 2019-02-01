@@ -1,9 +1,14 @@
 destinGrid = function(rse, sampleName, 
-                         PCrange = 3:25,
-                         TSSWeightsList = list(c(1,2), c(1,1.5), c(1,1.25), c(1,1)),
-                         DHSWeightsList = list(c(1,1), c(1,2), c(1,3), c(1,5)),
-                         nClusters, nCores=NULL, writeOut=F, outDir=NULL){
+                      PCrange = 3:25,
+                      TSSWeightsList = list(c(1, 2), c(1, 1.5), c(1, 1.25), c(1, 1)),
+                      DHSWeightsList = list(c(1, 1), c(1, 2), c(1, 3), c(1, 5)),
+                      nClusters, nCores = NULL, writeOut = F, outDir = NULL,
+                      pcaComputeType = "irlba", tempDirPCA = NULL){
                       # depthAdjustment = "postPCA" ){
+  
+  if (pcaComputeType == "python"){
+    nCores = NULL
+  }
   
   weightGrid = expand.grid(TSSIndex = seq_along(TSSWeightsList), 
                            DHSIndex = seq_along(DHSWeightsList))
@@ -38,7 +43,9 @@ destinGrid = function(rse, sampleName,
       TSSWeights = TSSWeightsList[[weightGrid[gridRow,]$TSSIndex]] 
       DHSWeights = DHSWeightsList[[weightGrid[gridRow,]$DHSIndex]]
       result =  try(getDestin( rse, PCrange=PCrange, TSSWeights=TSSWeights, 
-                              DHSWeights=DHSWeights, nClusters = nClusters)
+                              DHSWeights=DHSWeights, nClusters = nClusters,
+                              pcaComputeType = pcaComputeType, 
+                              tempDirPCA = tempDirPCA)
                               # depthAdjustment = depthAdjustment) 
                     )
       if (class(result) == "try-error") return(NULL)
@@ -56,7 +63,8 @@ destinGrid = function(rse, sampleName,
   DHSWeightsOpt = c(resultsMaxLike$DHSWeight1, resultsMaxLike$DHSWeight2)
   resultFinal = try(
     getDestin(rse, PCrange = nPCsOpt, TSSWeight = TSSWeightsOpt, 
-              DHSWeight = DHSWeightsOpt, outCluster=T, nClusters = nClusters)
+              DHSWeight = DHSWeightsOpt, outCluster=T, nClusters = nClusters, 
+              pcaComputeType = pcaComputeType, tempDirPCA = tempDirPCA)
               # depthAdjustment = depthAdjustment)
   )
   

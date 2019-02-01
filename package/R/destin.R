@@ -1,6 +1,7 @@
 
 getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1), 
-                     nClusters, outCluster = F){ 
+                     nClusters, outCluster = F, pcaComputeType = "irlba",
+                     tempDirPCA = NULL){ 
                      # depthAdjustment = "postPCA"){
   
   # for normalization
@@ -11,20 +12,21 @@ getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1),
   
   ### weight the regions
   # if ( (TSSWeights != c(1,1)) | (DHSWeights != c(1,1)) ) {
-    rowRanges(rse)$TSSMetric[rowRanges(rse)$region == "promoter"] = TSSWeights[1] 
-    rowRanges(rse)$TSSMetric[rowRanges(rse)$region == "distal element"] = TSSWeights[2]
-    rowRanges(rse)$DHSMetric =  dbeta( rowRanges(rse)$DHSsum/100 + .01, DHSWeights[1], DHSWeights[2]) 
-    rowRanges(rse)$regionWeight = 
-      (rowRanges(rse)$TSSMetric / mean(rowRanges(rse)$TSSMetric)) * 
-      (rowRanges(rse)$DHSMetric / mean(rowRanges(rse)$DHSMetric)) 
-    rse = rse[rowRanges(rse)$regionWeight > 0]
-    
+  rowRanges(rse)$TSSMetric[rowRanges(rse)$region == "promoter"] = TSSWeights[1]
+  rowRanges(rse)$TSSMetric[rowRanges(rse)$region == "distal element"] = TSSWeights[2]
+  rowRanges(rse)$DHSMetric =  dbeta(rowRanges(rse)$DHSsum / 100 + .01, DHSWeights[1], DHSWeights[2])
+  rowRanges(rse)$regionWeight =
+    (rowRanges(rse)$TSSMetric / mean(rowRanges(rse)$TSSMetric)) *
+    (rowRanges(rse)$DHSMetric / mean(rowRanges(rse)$DHSMetric))
+  rse = rse[rowRanges(rse)$regionWeight > 0]
+  
     X = assay(rse) * rowRanges(rse)$regionWeight  
   # } else {
   #   X = assay(rse)
   # }
   
   # DR and cluster ---------------------------------------------
+ 
   set.seed(10)
   
   # if (depthAdjustment == "prePCA") {
@@ -33,9 +35,17 @@ getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1),
   #   print("adjusting pre PCA")
   # }
   
-  pca = try(
-    irlba(t(X), nv = max(PCrange))
-  )
+    
+  if (pcaComputeType == "python") {  
+    if ( is.null(tempDirPCA) ){
+      tempDirPCA = 'getwd()'
+    }
+    pca = getPCApython(t(X), nv = max(PCrange), tempDirPCA = tempDirPCA)
+  }
+  if (pcaComputeType == "irlba") {  
+    pca = irlba(t(X), nv = max(PCrange))
+  }
+
   if (class(pca) == "try-error") return (NULL)
   
   results = lapply (PCrange, function(myNPC) {
@@ -81,14 +91,16 @@ getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1),
 
 
 getLogLike = function(countMat, cluster, sum = T){
-  
-  empiricalProbList = lapply(unique(cluster), function(myCellType){
-    sums = Matrix::rowSums(countMat[,cluster == myCellType, drop = F]) 
+ 
+  countMat = as(countMat, "dgCMatrix")
+  empiricalProbList = lapply(unique(cluster), function(myCluster){
+    sums = Matrix::rowSums(countMat[,cluster == myCluster, drop = F]) 
     probs = sums / sum(sums)
     return ( probs )
   })
   names(empiricalProbList) = unique(cluster)
   
+  # the col indexing is the bottleneck
   if (sum == T) { 
     logLikes = sapply( seq_along(cluster), function(myCellIndex) {
       dmultFast(x = countMat[,myCellIndex],
@@ -97,9 +109,8 @@ getLogLike = function(countMat, cluster, sum = T){
     return( sum( logLikes ) )
   } 
   
-  #create cell by cluster matrix of likelihoods
+  # create cell by cluster matrix of likelihoods
   if (sum == F) {
-    clusterIndex = 1
     logLikeList = lapply(1:length(unique(cluster)), function(clusterIndex) {
       logLikes = sapply( seq_along(cluster), function(myCellIndex) {
         dmultFast(x = countMat[,myCellIndex],
@@ -111,7 +122,6 @@ getLogLike = function(countMat, cluster, sum = T){
   }
   
 }
-
 
 dmultFast = function(x, prob){ 
   N = sum(x)
@@ -132,6 +142,24 @@ doQC = function(rse, regionSumCutoff = 5, cellSumCutoffSDs = 3){
   return(rse)
 }
 
+getPCApython = function(Xt, nv, tempDirPCA){
+
+  # write count mat
+  if ( is.null(tempDirPCA) ) {
+    tempDirPCA = getwd()
+  }
+  dir.create(tempDirPCA, showWarnings = F)
+  Matrix::writeMM(Xt, file = file.path(tempDirPCA, 'Xt.mtx'))
+  
+  command = paste('python', file.path(yourPathToDestinRepo, 'src', 'pca.py'), tempDirPCA, nv)
+  # print(command)
+  system(command)
+  
+  pca = list()
+  pca$v = as.matrix(read.table(file = file.path(tempDirPCA, 'PCA.txt')))
+  
+  return(pca)                
+}
 
 
 

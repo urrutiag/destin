@@ -226,7 +226,7 @@ yourPathToDestinRepo = "~/Documents/gitRepos/destin"
 install.packages(file.path(yourPathToDestinRepo,"package"), repos = NULL, type = "source")
 ```
 
-if you have not already installed the github repository, install the R package directly from github
+if you have not already installed the github repository, install the R package directly from github.  
 ```{r eval = F}
 install.packages("devtools")
 devtools::install_github("urrutiag/destin/package")
@@ -327,7 +327,8 @@ rse = annotateRSE(rse, model)
 in this example we append the SRA Run table from SRA to the colData
 ```{r}
 cellData = fread(cellDataFile) 
-colMerged = merge(rse@colData, cellData, by.x = "cellID", by.y = "Run")
+colData(rse)$Run = tstrsplit(colData(rse)$fileName, split = '.', fixed= T)[[1]]
+colMerged = merge(rse@colData, cellData, by = "Run")
 colData(rse) = colMerged 
 ```
 
@@ -372,6 +373,7 @@ For each combination of TSS distance weights, DHS frequency weights, and number 
 
 In this example, we run Destin with default settings aside from lowering the number of principle components (since we only have 17 cells post-QC).  Optimal tuning parameters for the toy example are displayed in the summary: TSS weights (1, 2), higher weight to distal regulatory elements; DHS weights (1, 1), unweighted DHS frequency; and 3 principle components.
 
+
 ```{r warning=FALSE } 
 nClusters = clusterEst$nClustersList$logLikeElbow
 PCrange = 3:10
@@ -381,7 +383,9 @@ results = destinGrid (rse, sampleName,
             PCrange = PCrange,
             TSSWeightsList = TSSWeightsList,
             DHSWeightsList = DHSWeightsList,
-            nClusters = nClusters)
+            nClusters = nClusters,
+            pcaComputeType = "python",
+            tempDirPCA = '/Users/urrutig1/Documents/temp')
 results$summary
 ```
 

@@ -9,7 +9,9 @@ getElbow = function(measureVec, clusterVec){
   return(elbowMetric)
 }
 
-estimateNClusters = function(rse, nClustersMax = 20, allMethods = T){
+estimateNClusters = function(rse, nClustersMax = 20, allMethods = T,
+                             pcaComputeType = "irlba",
+                             tempDirPCA = NULL){
   
   clusterVec = 1:nClustersMax
   
@@ -24,7 +26,17 @@ estimateNClusters = function(rse, nClustersMax = 20, allMethods = T){
   #PCA
   PCrange=10
   X = assay(rse)
-  pca = irlba(t(X), nv = max(PCrange))
+  
+  if (pcaComputeType == "irlba") {  
+    pca = irlba(t(X), nv = max(PCrange))
+  }
+  if (pcaComputeType == "python") {  
+    if ( is.null(tempDirPCA) ){
+      tempDirPCA = 'getwd()'
+    }
+    pca = getPCApython(t(X), nv = max(PCrange), tempDirPCA = tempDirPCA)
+  }
+  
   projection = t(X) %*% pca$v[, 1:PCrange]
   projectionNorm = projection / cellSumPostQC
   projNormMat = as(projectionNorm, "matrix")
@@ -34,6 +46,7 @@ estimateNClusters = function(rse, nClustersMax = 20, allMethods = T){
   
   # model-based likelihood elbow
   # WCSSE elbow
+  print('computing elbow methods')
   logLikeVec = rep(NA, length(clusterVec))
   wcsseVec = rep(NA, length(clusterVec))
   for (k in clusterVec) { 
@@ -50,6 +63,7 @@ estimateNClusters = function(rse, nClustersMax = 20, allMethods = T){
   if (allMethods == T){
     
     #  silhouette
+    print('computing silhouette')
     myDist = dist(projNormMat)
     silhouetteStatsNot1 = sapply (2:max(clusterVec), function(myK)
       { 
@@ -62,6 +76,7 @@ estimateNClusters = function(rse, nClustersMax = 20, allMethods = T){
     
     #distortion
     if ( "ClusterR" %in% rownames(installed.packages()) ) {
+      print('computing distortion')
       distortionStats = try(
         ClusterR::Optimal_Clusters_KMeans(
           data = projNormMat, 
@@ -79,7 +94,8 @@ estimateNClusters = function(rse, nClustersMax = 20, allMethods = T){
     }
     
     #gap
-    if (gap == T){
+    
+      print('computing gap')
       gap_statKmeans = try(
         cluster::clusGap(projNormMat, FUN = kmeans,
                                         K.max = max(clusterVec), B = 500)
@@ -91,7 +107,7 @@ estimateNClusters = function(rse, nClustersMax = 20, allMethods = T){
                                                gap_statKmeans$Tab[,4], 
                                                method = "firstSEmax")
       }
-    }
+    
   }
   
   out = list(nClustersList = nClustersList,

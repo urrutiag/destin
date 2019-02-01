@@ -73,7 +73,7 @@ install.packages(file.path(yourPathToDestinRepo,"package"), repos = NULL, type =
 
 load Destin
 ```{r  message=FALSE}
-suppressMessages( library(destin, quietly = T) )
+library(destin, quietly = T) 
 ```
 
 Create ranged summarized experiment from 10x peak by cell matrix 
@@ -111,79 +111,36 @@ For details, please see tutorials using Buenrostro cells or Preissl cells
   sampleName = 'atac_v1_pbmc_5k'
   nClusters = 10
   model = "hg19"
-  # nCores = 7
-  # nCells = 100
-  # nRegions = 1000
-  # 
-  # # subset cells
-  # cellSamples = sample(1:ncol(rse), 100)
-  # rse = rse[,cellSamples]
-  # 
-  # # subset regions
-  # regionSamples = sample(1:nrow(rse), nRegions)
-  # rse = rse[regionSamples,]
-  
+
   rse = annotateRSE(rse, model)
   
   rse = doQC(rse, regionSumCutoff = 5, cellSumCutoffSDs = 3)
-  
-  #clusterEst = estimateNClusters(rse, nClustersMax = 10, allMethods = F)
-  #nClusters = clusterEst$nClustersList$logLikeElbow
 ```
 
+Estimate n clusters, only elbow methods 
 ```{r}
-
+clusterEst = estimateNClusters(rse, nClustersMax = 10, allMethods = F, pcaComputeType = "python", 
+          tempDirPCA = '/Users/urrutig1/Documents/temp')
+nClusters = clusterEst$nClustersList$logLikeElbow
 ```
 
-
-Now do PCA through a python script
+Now do Destin and run PCA through a call to python due to large matrix size
 ```{r}
-# myMat = Matrix::readMM(file = file.path(tempDir, 'pca1.txt'))
+clusterResults = getDestin(rse, nClusters=5,
+          pcaComputeType = "python", 
+          tempDirPCA = '/Users/urrutig1/Documents/temp',
+          outCluster = T)
 ```
 
+Now perform Destin clustering 
 ```{r}
-tempDir = '~/Documents/temp'
-
-destinGridBig = function(rse, sampleName, tempDir,
-                         PCrange = 3:25,
-                         TSSParamList = list(c(1,2), c(1,1.5), c(1,1.25), c(1,1)),
-                         DHSParamList = list(c(1,1), c(1,2), c(1,3), c(1,5)),
-                         nClusters, nCores=NULL, writeOut=F, outDir=NULL){
-  # write count mat
-  dir.create(tempDir, showWarnings = F)
-  Matrix::writeMM(assay(rse), file = file.path(tempDir, 'countMat.mtx'))
-
-  cellSumPostQC = colData(rse)$cellSumPostQC
-
-  #calculate and write weights
-  weightGrid = expand.grid(TSSIndex = seq_along(TSSWeightsList), 
-                           DHSIndex = seq_along(DHSWeightsList))
-  weightMatrix = sapply(1:nrow(weightGrid), function(gridRow) {
-      TSSparams = TSSParamList[[weightGrid[gridRow,]$TSSIndex]] 
-      DHSparams = DHSParamList[[weightGrid[gridRow,]$DHSIndex]]
-      TSSweights = rep(0, nrow(rse))
-      TSSweights[rowRanges(rse)$region == "promoter"] = TSSparams[1]
-      TSSweights[rowRanges(rse)$region == "distal element"] = TSSparams[2]
-      DHSweights =  dbeta( rowRanges(rse)$DHSsum/100 + .01, DHSparams[1], DHSparams[2])
-      # rse = rse[rowRanges(rse)$regionWeight > 0]
-      regionWeights = ( TSSweights / mean(TSSweights) ) * ( DHSweights / mean(DHSweights) ) 
-      return(regionWeights)
-  } )
-  write.csv(weightMatrix, file = file.path(tempDir, 'weightMatrix.mtx'), row.names = F)
-}
-```
-
-
-```{r}
-tempDir = '~/Documents/temp'
-command = paste('python', file.path(yourPathToDestinRepo, 'src', 'pca.py'), tempDir)
-system(command)
-```
-
-```{r}
-  clusterResults = destinGrid (rse, sampleName, 
-                               nClusters = nClusters, nCores = 7)
-  clusterResults$cluster
+clusterResults = destinGrid (rse, 
+                               nClusters = nClusters, 
+                               TSSWeightsList = list(c(1, 2)),
+                               DHSWeightsList = list(c(1, 1)),
+                               pcaComputeType = "python", 
+                               tempDirPCA = '/Users/urrutig1/Documents/temp')
+clusterResults$cluster
 ```
 
 Time to run
