@@ -21,10 +21,14 @@ Approximate run time (8 core macbook pro): ~ 7 min
 startTime = Sys.time()
 ```
 
-load libraries and set paths, set packageDir to the path where you have cloned the git repository
-```{r message=FALSE, warning=FALSE}
+ set packageDir to the path where you have cloned the git repository and install 
+```{r message=FALSE, warning=FALSE, eval = F}
 packageDir = "~/Documents/gitRepos/destin"
 install.packages(file.path(packageDir,"package"), repos = NULL, type = "source")
+```
+
+load libraries and set paths according to your system
+```{r}
 library(destin, quietly = T)
 gwasDir = "~/Dropbox/Gene_shared/scATACseq/articles/GWAS"
 outDir = "~/Documents/statGenGit/GWASout" 

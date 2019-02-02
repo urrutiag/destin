@@ -1,6 +1,6 @@
 
-getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1), 
-                     nClusters, outCluster = F){ 
+getDestin = function(rse, nClusters, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1), 
+                      outCluster = F){ 
                      # depthAdjustment = "postPCA"){
   
   # for normalization

@@ -9,14 +9,15 @@ getElbow = function(measureVec, clusterVec){
   return(elbowMetric)
 }
 
-estimateNClusters = function(rse, nClustersMax = 20, allMethods = T){
+#TODO check error on range starts with 2
+estimateNClusters = function(rse, nClustersRange = 1:20, allMethods = F){
   
-  clusterVec = 1:nClustersMax
+  clusterVec = nClustersRange
   
   # catch error, clusterVec must begin with 1
-  if (clusterVec[1] != 1){
-    stop("Please ensure that clusterVec begins with 1")
-  }
+  # if (clusterVec[1] != 1){
+  #   stop("Please ensure that clusterVec begins with 1")
+  # }
   
   # for normalization
   cellSumPostQC = colData(rse)$cellSumPostQC
@@ -50,7 +51,6 @@ estimateNClusters = function(rse, nClustersMax = 20, allMethods = T){
   nClustersList$logLikeElbow = which.min(metricsList$logLikeElbow)
   nClustersList$wcsseElbow = which.min(metricsList$wcsseElbow)
   
-  
   if (allMethods == T){
     
     #  silhouette
@@ -73,8 +73,8 @@ estimateNClusters = function(rse, nClustersMax = 20, allMethods = T){
           data = projNormMat, 
           max_clusters = max(clusterVec), 
           plot_clusters = F, 
-          criterion = "distortion_fK")
-        , silent = T)
+          criterion = "distortion_fK"),
+          silent = T)
       if (class(class(metricsList$distortionStats)) != "try-error")
       {
         metricsList$distortionStats = as.vector(distortionStats)
@@ -84,7 +84,8 @@ estimateNClusters = function(rse, nClustersMax = 20, allMethods = T){
       print("ClusterR package not installed: distortion statistic unavailable")
     }
     
-    #gap
+
+      #gap
     
       print('computing gap')
       gap_statKmeans = try(
@@ -122,7 +123,7 @@ plotNClusters = function(clusterEst){
                        xlab = "N Clusters") +
       guides(color = FALSE)
   }
-  grid.arrange(grobs = pList)
+  grid.arrange(grobs = pList, ncol = 2)
 }
 
 

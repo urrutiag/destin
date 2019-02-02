@@ -1,14 +1,9 @@
-destinGrid = function(rse, sampleName, 
+destinGrid = function(rse, nClusters,
                       PCrange = 3:25,
                       TSSWeightsList = list(c(1, 2), c(1, 1.5), c(1, 1.25), c(1, 1)),
                       DHSWeightsList = list(c(1, 1), c(1, 2), c(1, 3), c(1, 5)),
-                      nClusters, nCores = NULL, writeOut = F, outDir = NULL,
-                      pcaComputeType = "irlba", tempDirPCA = NULL){
+                      nCores = NULL, writeOut = F, outDir = NULL){
                       # depthAdjustment = "postPCA" ){
-  
-  if (pcaComputeType == "python"){
-    nCores = NULL
-  }
   
   weightGrid = expand.grid(TSSIndex = seq_along(TSSWeightsList), 
                            DHSIndex = seq_along(DHSWeightsList))
@@ -22,14 +17,14 @@ destinGrid = function(rse, sampleName,
     clusterEvalQ(cl, library(data.table))
     clusterExport(cl, list("rse", "TSSWeightsList", "DHSWeightsList", "weightGrid",
                            "getDestin", "PCrange", "getLogLike" ,
-                           "sampleName", "nClusters")
+                           "nClusters")
                   # , "depthAdjustment")
                   , envir = environment())
     resultsList = parLapply(cl, 1:nrow(weightGrid), function(gridRow) {
       TSSWeights = TSSWeightsList[[weightGrid[gridRow,]$TSSIndex]] 
       DHSWeights = DHSWeightsList[[weightGrid[gridRow,]$DHSIndex]]
-      result =  try(getDestin( rse, PCrange=PCrange, TSSWeights=TSSWeights, 
-                              DHSWeights=DHSWeights, nClusters = nClusters)
+      result =  try(getDestin( rse, nClusters = nClusters, PCrange=PCrange, 
+                               TSSWeights=TSSWeights, DHSWeights=DHSWeights, )
                               # depthAdjustment = depthAdjustment) 
                     )
       if (class(result) == "try-error") return(NULL)
@@ -42,8 +37,8 @@ destinGrid = function(rse, sampleName,
     resultsList = lapply(1:nrow(weightGrid), function(gridRow) {
       TSSWeights = TSSWeightsList[[weightGrid[gridRow,]$TSSIndex]] 
       DHSWeights = DHSWeightsList[[weightGrid[gridRow,]$DHSIndex]]
-      result =  try(getDestin( rse, PCrange=PCrange, TSSWeights=TSSWeights, 
-                              DHSWeights=DHSWeights, nClusters = nClusters)
+      result =  try(getDestin( rse, nClusters = nClusters, PCrange=PCrange, 
+                               TSSWeights=TSSWeights, DHSWeights=DHSWeights, )
                               # depthAdjustment = depthAdjustment) 
                     )
       if (class(result) == "try-error") return(NULL)
