@@ -22,6 +22,8 @@ createRSE = function(bamDir, bamFiles, bedData){
     p=c(0,cumsum(sapply(input,function(x){length(x@x)}))),
     dims=c(nRows,length(input))
   )
+  countsMat = as(countsMat, "dgCMatrix")
+  
   countsMat[countsMat > 1] = 1
   
   colData = data.table::data.table(data.frame(
@@ -48,6 +50,8 @@ createRSEfrom10xMatrix = function(data10xDir)
   bedData = rtracklayer::import(file.path(data10xDir, "peaks.bed"), format = "BED")
   
   countsMat = Matrix::readMM(file.path(data10xDir,"matrix.mtx"))
+  countsMat = as(countsMat, "dgCMatrix")
+  
   countsMat[countsMat > 1] = 1
   
   rse = SummarizedExperiment::SummarizedExperiment(assays=list(counts=countsMat),

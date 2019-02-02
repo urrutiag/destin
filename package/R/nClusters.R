@@ -9,9 +9,7 @@ getElbow = function(measureVec, clusterVec){
   return(elbowMetric)
 }
 
-estimateNClusters = function(rse, nClustersMax = 20, allMethods = T,
-                             pcaComputeType = "irlba",
-                             tempDirPCA = NULL){
+estimateNClusters = function(rse, nClustersMax = 20, allMethods = T){
   
   clusterVec = 1:nClustersMax
   
@@ -22,20 +20,13 @@ estimateNClusters = function(rse, nClustersMax = 20, allMethods = T,
   
   # for normalization
   cellSumPostQC = colData(rse)$cellSumPostQC
-  
+
   #PCA
   PCrange=10
+  
   X = assay(rse)
   
-  if (pcaComputeType == "irlba") {  
-    pca = irlba(t(X), nv = max(PCrange))
-  }
-  if (pcaComputeType == "python") {  
-    if ( is.null(tempDirPCA) ){
-      tempDirPCA = 'getwd()'
-    }
-    pca = getPCApython(t(X), nv = max(PCrange), tempDirPCA = tempDirPCA)
-  }
+  pca = irlba(t(X), nv = max(PCrange))
   
   projection = t(X) %*% pca$v[, 1:PCrange]
   projectionNorm = projection / cellSumPostQC

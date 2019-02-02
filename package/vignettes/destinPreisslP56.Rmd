@@ -10,7 +10,7 @@ For this workflow example we begin at this step 3.5. Load rse.
 
 Previous steps are described for reference.
 
-Approximate run time (8 core macbook pro): ~ 5 min
+Approximate run time (8 core macbook pro): ~ 3 min
 
 # 1. Data
 - P56 forebrain mouse scATAC-seq from Preissl et al.
@@ -360,7 +360,7 @@ rse = doQC(rse, regionSumCutoff = 5, cellSumCutoffSDs = 3)
 
 ## 3.7. Determine number of clusters
 
-Destin uses an unsupervised model-based likelihood to estimate number of clusters. Like WCSSE, the likelihood is non-decreasing with increasing number of clusters.  We fit the model log-likelihood as a linear spline function of number of clusters with a single knot. The knot placement which results in the best fit (lowest sum of squared errors) is selected as number of clusters (n_k).
+Destin uses an unsupervised model-based likelihood (logLikeElbow) to estimate number of clusters. Like WCSSE, the likelihood is non-decreasing with increasing number of clusters.  We fit the model log-likelihood as a linear spline function of number of clusters with a single knot. The knot placement which results in the best fit (lowest sum of squared errors) is selected as number of clusters (n_k).
 
 Also shown for display purposes are results using 4 other methods to estimate number of clusters:
 
@@ -372,18 +372,19 @@ distortion: accounts for the decrease in WCSSE by comparing to a baseline model 
 
 GapStat: The gap (Tibshirani et al., 2001) statistic accounts for the tendency to overestimate n_k by using a permutation approach and fitting a null distribution to the WCSSE which naturally decreases as n_k increases. Then the empirical WCSSE is compared to the null distribution with the gap statistic as output. To select the number of clusters the “first SE” method is used which determines the first nk where the gap statistic is within 1 standard deviation of the following gap statistic.
 
-Note: cluster::clusGap will produce warnings when computing the gap statistic.  The gap statistic is for display purposes only and not used by Destin, so this is not a need for concern.  
+Note: cluster::clusGap will produce warnings when computing the gap statistic.  It also runs extremely slow.  The gap statistic is for display purposes only and not used by Destin, so this is not a need for concern.  
 
 We search a space of 1 to 20 number of clusters (user-modifiable). Here we find 5 clusters. 
 
 
-```{r eval = FALSE}
+```{r}
 set.seed(10)
 nClustersMax = 20
-clusterEst = estimateNClusters(rse, nClustersMax = nClustersMax)
+clusterEst = estimateNClusters(rse, nClustersMax = nClustersMax, allMethods = F)
+plotNClusters(clusterEst)
 ```
 
-Precomputed results are loaded below.  Estimated number of clusters shown in blue by method.
+Precomputed results for all 5 metrics are loaded below.  Estimated number of clusters shown in blue by method.
 
 ```{r}
 load(system.file("results", "clusterEstPreisslP56.Rdata", package = "destin"))
@@ -395,34 +396,31 @@ plotNClusters(clusterEst)
 
 For each combination of TSS distance weights, DHS frequency weights, and number of PCs, cell type clustering is performed via k-means. The likelihood is calculated according to the multinomial model, and the clustering result producing the highest multinomial likelihood is selected as the final clustering result.
 
-A previous run with default tuning parameter options estimated the optimal parameters to be 10 PCs, TSS weights (1,2), higher weight to distal regulatory elements; and DHS weights (1,3), higher weight to rare chromatin accessible regions.  You may verify this by setting to default tuning parameter ranges, but this will take longer depending on number of cpu cores. Set nCores to an appropriate value based on your system.
+Set nCores to an appropriate value based on your system.
 
 ```{r warning=FALSE}
 #set nCores to an appropriate value based on your system
 nCores = 7 
-PCrange = 10:11
-TSSWeightsList = list(c(1,1),c(1,2))
-DHSWeightsList = list(c(1,1), c(1,3))
 sampleName = "PreisslP56"
-nClusters = 5
+nClusters = clusterEst$nClustersList$logLikeElbow
 results = destinGrid (rse, sampleName,
-                      PCrange = PCrange,
-                      TSSWeightsList = TSSWeightsList,
-                      DHSWeightsList = DHSWeightsList,
                       nClusters = nClusters,
                       nCores = nCores)
 colData(rse)$cluster = results$cluster$cluster
+results$summary
 ```
 
 
-Best results were found using 10 PCs, TSS weights (1,2) and DHS weights (1,3).  We label the clusters based on cell type labels provided by Preissl et al.  
+Best results were found using 10 PCs, TSS weights (1,2) and DHS weights (1,3).  
+
+We label the clusters based on cell type labels provided by Preissl et al.  
 cluster 1: inhibitory neurons 1
 cluster 2: microglia and astrocytes (which we refer to as neuroglia)
 cluster 3: excitatory neurons
 cluster 4: oligodendrocytes
 cluster 5: inhibitory neuron 2
 
-We can visualize the clustering results using t-SNE, using default parameters.  Note that we do not expect tSNE to match up precisely with our clustering results as we do not use tSNE to cluster.  tSNE contains a high level of variability, which can be verified by setting the seed.  It is for broad visual purposes only.
+We can visualize the clustering results using t-SNE, using default parameters.  Note that we do not expect tSNE to match up precisely with our clustering results as we do not use tSNE to cluster.  tSNE is highly variable, which can be verified by setting the seed.  It is for broad visual purposes only.
 
 Annotation by cell type is optional, as cell type is unknown in practice. 
 ```{r}
@@ -451,11 +449,11 @@ plotClusterTsne(clusterResults6,
                 clusterLabels = c("OC", "IN1", "IN2", "EX", "AC", "MG"))
 ```
 
-Next we reassign cells by maximizing each cell's post-classification multinomial likelihood. The input to the multinomial model is the chromatin accessibility count matrix and the cell cluster assignments.  In this example there is no change in clustering assignment
+Next we reassign cells by maximizing each cell's post-classification multinomial likelihood. The input to the multinomial model is the chromatin accessibility count matrix and the cell cluster assignments.  The output is a cell by cluster likelihood matrix.  In this example there is no change in clustering assignment
 ```{r}
 countMat = assay(rse)
 cluster = results$cluster$cluster
-logLikeMatrix = getLogLike(countMat, cluster, sum = F)
+logLikeMatrix = getLogLike(countMat, cluster, reassign = T)
 clusterReassigned = apply(logLikeMatrix, 1, which.max)
 ```
 

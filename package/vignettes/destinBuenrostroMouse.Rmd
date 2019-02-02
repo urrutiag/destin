@@ -383,18 +383,18 @@ results = destinGrid (rse, sampleName,
             PCrange = PCrange,
             TSSWeightsList = TSSWeightsList,
             DHSWeightsList = DHSWeightsList,
-            nClusters = nClusters,
-            pcaComputeType = "python",
-            tempDirPCA = '/Users/urrutig1/Documents/temp')
+            nClusters = nClusters)
 results$summary
 ```
 
 
-Next we reassign cells by maximizing each cell's post-classification multinomial likelihood. The input to the multinomial model is the chromatin accessibility count matrix and the cell cluster assignments.  In this example there is no change in clustering assignment
+Next we reassign cells by maximizing each cell's post-classification multinomial likelihood. The input to the multinomial model is the chromatin accessibility count matrix and the cell cluster assignments.  The output is a cell by cluster post-classification likelihood. 
+
+In this example there is no change in clustering assignment
 ```{r}
 countMat = assay(rse)
-cluster = results$cluster$cluster
-logLikeMatrix = getLogLike(countMat, cluster, sum = F)
+clusterResult = results$cluster$cluster
+logLikeMatrix = getLogLike(countMat, clusterResult, reassign = T)
 clusterReassigned = apply(logLikeMatrix, 1, which.max)
 clusterReassigned
 ```

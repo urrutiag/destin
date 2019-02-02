@@ -28,7 +28,7 @@ https://support.10xgenomics.com/single-cell-atac/datasets/1.0.1/atac_v1_hgmm_500
 
 10x uses Cell Ranger ATAC 1.0.1 for bioinformatic processing and produces a peak by cell matrix. 
 
-Approximate time to run(8 core macbook pro): ~ 2 minutes
+Approximate time to run(8 core macbook pro): ~ 
 
 ```{r}
 startTime = Sys.time()
@@ -119,16 +119,13 @@ For details, please see tutorials using Buenrostro cells or Preissl cells
 
 Estimate n clusters, only elbow methods 
 ```{r}
-clusterEst = estimateNClusters(rse, nClustersMax = 10, allMethods = F, pcaComputeType = "python", 
-          tempDirPCA = '/Users/urrutig1/Documents/temp')
+clusterEst = estimateNClusters(rse, nClustersMax = 10, allMethods = F)
 nClusters = clusterEst$nClustersList$logLikeElbow
 ```
 
 Now do Destin and run PCA through a call to python due to large matrix size
 ```{r}
 clusterResults = getDestin(rse, nClusters=5,
-          pcaComputeType = "python", 
-          tempDirPCA = '/Users/urrutig1/Documents/temp',
           outCluster = T)
 ```
 
@@ -137,9 +134,7 @@ Now perform Destin clustering
 clusterResults = destinGrid (rse, 
                                nClusters = nClusters, 
                                TSSWeightsList = list(c(1, 2)),
-                               DHSWeightsList = list(c(1, 1)),
-                               pcaComputeType = "python", 
-                               tempDirPCA = '/Users/urrutig1/Documents/temp')
+                               DHSWeightsList = list(c(1, 1)))
 clusterResults$cluster
 ```
 

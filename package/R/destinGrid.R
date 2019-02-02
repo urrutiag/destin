@@ -21,7 +21,7 @@ destinGrid = function(rse, sampleName,
     clusterEvalQ(cl, library(irlba))
     clusterEvalQ(cl, library(data.table))
     clusterExport(cl, list("rse", "TSSWeightsList", "DHSWeightsList", "weightGrid",
-                           "getDestin", "PCrange", "getLogLike","dmultFast" ,
+                           "getDestin", "PCrange", "getLogLike" ,
                            "sampleName", "nClusters")
                   # , "depthAdjustment")
                   , envir = environment())
@@ -43,9 +43,7 @@ destinGrid = function(rse, sampleName,
       TSSWeights = TSSWeightsList[[weightGrid[gridRow,]$TSSIndex]] 
       DHSWeights = DHSWeightsList[[weightGrid[gridRow,]$DHSIndex]]
       result =  try(getDestin( rse, PCrange=PCrange, TSSWeights=TSSWeights, 
-                              DHSWeights=DHSWeights, nClusters = nClusters,
-                              pcaComputeType = pcaComputeType, 
-                              tempDirPCA = tempDirPCA)
+                              DHSWeights=DHSWeights, nClusters = nClusters)
                               # depthAdjustment = depthAdjustment) 
                     )
       if (class(result) == "try-error") return(NULL)
@@ -63,8 +61,7 @@ destinGrid = function(rse, sampleName,
   DHSWeightsOpt = c(resultsMaxLike$DHSWeight1, resultsMaxLike$DHSWeight2)
   resultFinal = try(
     getDestin(rse, PCrange = nPCsOpt, TSSWeight = TSSWeightsOpt, 
-              DHSWeight = DHSWeightsOpt, outCluster=T, nClusters = nClusters, 
-              pcaComputeType = pcaComputeType, tempDirPCA = tempDirPCA)
+              DHSWeight = DHSWeightsOpt, outCluster=T, nClusters = nClusters)
               # depthAdjustment = depthAdjustment)
   )
   

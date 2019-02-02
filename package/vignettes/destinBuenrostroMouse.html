@@ -599,7 +599,8 @@ colMerged =<span class="st"> </span><span class="kw">merge</span>(rse<span class
 clusterEst =<span class="st"> </span><span class="kw">estimateNClusters</span>(rse,   <span class="dt">nClustersMax =</span> <span class="dv">5</span>)</code></pre></div>
 <pre><code>## Warning in irlba(t(X), nv = max(PCrange)): You're computing too large a
 ## percentage of total singular values, use a standard svd instead.</code></pre>
-<pre><code>## [1] &quot;computing silhouette&quot;
+<pre><code>## [1] &quot;computing elbow methods&quot;
+## [1] &quot;computing silhouette&quot;
 ## [1] &quot;computing distortion&quot;
 ## [1] &quot;computing gap&quot;</code></pre>
 <p>Estimated number of clusters shown in blue by method.</p>
@@ -619,19 +620,18 @@ results =<span class="st"> </span><span class="kw">destinGrid</span> (rse, sampl
             <span class="dt">PCrange =</span> PCrange,
             <span class="dt">TSSWeightsList =</span> TSSWeightsList,
             <span class="dt">DHSWeightsList =</span> DHSWeightsList,
-            <span class="dt">nClusters =</span> nClusters,
-            <span class="dt">pcaComputeType =</span> <span class="st">&quot;python&quot;</span>,
-            <span class="dt">tempDirPCA =</span> <span class="st">'/Users/urrutig1/Documents/temp'</span>)
+            <span class="dt">nClusters =</span> nClusters)
 results<span class="op">$</span>summary</code></pre></div>
 <pre><code>##   TSSWeight1 TSSWeight2 DHSWeight1 DHSWeight2 nPCs nPeaksActual   logLike
-## 1          1          2          1          1    9         7670 -85079.35</code></pre>
-<p>Next we reassign cells by maximizing each cell’s post-classification multinomial likelihood. The input to the multinomial model is the chromatin accessibility count matrix and the cell cluster assignments. In this example there is no change in clustering assignment</p>
+## 1          1          2          1          1    3         7670 -85079.35</code></pre>
+<p>Next we reassign cells by maximizing each cell’s post-classification multinomial likelihood. The input to the multinomial model is the chromatin accessibility count matrix and the cell cluster assignments. The output is a cell by cluster post-classification likelihood.</p>
+<p>In this example there is no change in clustering assignment</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">countMat =<span class="st"> </span><span class="kw">assay</span>(rse)
-cluster =<span class="st"> </span>results<span class="op">$</span>cluster<span class="op">$</span>cluster
-logLikeMatrix =<span class="st"> </span><span class="kw">getLogLike</span>(countMat, cluster, <span class="dt">sum =</span> F)
+clusterResult =<span class="st"> </span>results<span class="op">$</span>cluster<span class="op">$</span>cluster
+logLikeMatrix =<span class="st"> </span><span class="kw">getLogLike</span>(countMat, clusterResult, <span class="dt">reassign =</span> T)
 clusterReassigned =<span class="st"> </span><span class="kw">apply</span>(logLikeMatrix, <span class="dv">1</span>, which.max)
 clusterReassigned</code></pre></div>
-<pre><code>##  [1] 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2</code></pre>
+<pre><code>##  [1] 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1</code></pre>
 <p>Since Buenrostro et al. provided cell labels, we can compute cluster purity</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">clusterTable =<span class="st"> </span><span class="kw">table</span>(results<span class="op">$</span>cluster<span class="op">$</span>cluster, rse<span class="op">$</span>cell_type)
 purity =<span class="st"> </span><span class="kw">sum</span>( <span class="kw">apply</span>(clusterTable, <span class="dv">1</span>, max) ) <span class="op">/</span><span class="st"> </span><span class="kw">sum</span>(clusterTable)
@@ -708,7 +708,7 @@ clusterTable</code></pre></div>
 <p>Time to run</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">TotalTime =<span class="st"> </span><span class="kw">Sys.time</span>() <span class="op">-</span><span class="st"> </span>startTime
 TotalTime</code></pre></div>
-<pre><code>## Time difference of 57.89442 secs</code></pre>
+<pre><code>## Time difference of 44.80641 secs</code></pre>
 </div>
 </div>
 

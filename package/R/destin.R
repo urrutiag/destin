@@ -1,7 +1,6 @@
 
 getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1), 
-                     nClusters, outCluster = F, pcaComputeType = "irlba",
-                     tempDirPCA = NULL){ 
+                     nClusters, outCluster = F){ 
                      # depthAdjustment = "postPCA"){
   
   # for normalization
@@ -34,20 +33,9 @@ getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1),
   #   X = X_depthPre
   #   print("adjusting pre PCA")
   # }
-  
-    
-  if (pcaComputeType == "python") {  
-    if ( is.null(tempDirPCA) ){
-      tempDirPCA = 'getwd()'
-    }
-    pca = getPCApython(t(X), nv = max(PCrange), tempDirPCA = tempDirPCA)
-  }
-  if (pcaComputeType == "irlba") {  
-    pca = irlba(t(X), nv = max(PCrange))
-  }
+   
+  pca = irlba(t(X), nv = max(PCrange))
 
-  if (class(pca) == "try-error") return (NULL)
-  
   results = lapply (PCrange, function(myNPC) {
     projection = t(X) %*% pca$v[, 1:myNPC]
     
@@ -90,44 +78,54 @@ getDestin = function(rse, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1),
 }
 
 
-getLogLike = function(countMat, cluster, sum = T){
- 
-  countMat = as(countMat, "dgCMatrix")
-  empiricalProbList = lapply(unique(cluster), function(myCluster){
-    sums = Matrix::rowSums(countMat[,cluster == myCluster, drop = F]) 
-    probs = sums / sum(sums)
-    return ( probs )
+getLogLike = function(countMat, cluster, reassign = FALSE){
+  
+  cellLikesList = lapply( seq_along( unique(cluster) ), function(myCluster) {
+    
+    # cluster specific count mat and 
+    countMatCluster = countMat[,cluster == myCluster, drop = F]
+    
+    # empirical probabilities within cluster
+    regionTotals = Matrix::rowSums(countMatCluster) 
+    if (reassign == T) {
+      regionTotals = regionTotals + 1
+    }
+    regionProbs = regionTotals / sum(regionTotals)
+    
+    if (reassign == TRUE) {
+      countMatEvaluate = countMat
+    } else {
+      countMatEvaluate = countMatCluster
+    }
+    
+    # term 1: total accessible regions by cell
+    cellTotals = colSums(countMatEvaluate)
+    term1 = lgamma(cellTotals + 1)
+    
+    # term 2: sum(log(probabilities)) by cell where probabilities include only accessible regions 
+    probsDiag = Diagonal(length(regionProbs), regionProbs)
+    # print(regionProbs[1:10])
+    scaledCountMat = probsDiag %*% countMatEvaluate
+    scaledCountMat@x = log(scaledCountMat@x)
+    term2 = colSums(scaledCountMat)
+    
+    cellLikes = term1 + term2
+    return( cellLikes )
+    
   })
-  names(empiricalProbList) = unique(cluster)
   
-  # the col indexing is the bottleneck
-  if (sum == T) { 
-    logLikes = sapply( seq_along(cluster), function(myCellIndex) {
-      dmultFast(x = countMat[,myCellIndex],
-                prob = empiricalProbList[[paste(cluster[myCellIndex])]])
-    })
-    return( sum( logLikes ) )
-  } 
-  
-  # create cell by cluster matrix of likelihoods
-  if (sum == F) {
-    logLikeList = lapply(1:length(unique(cluster)), function(clusterIndex) {
-      logLikes = sapply( seq_along(cluster), function(myCellIndex) {
-        dmultFast(x = countMat[,myCellIndex],
-                  prob = empiricalProbList[[clusterIndex]])
-      })
-    })
-    logLikeMatrix = do.call(cbind, logLikeList)
+  if (reassign == T){
+    logLikeMatrix = do.call(cbind, cellLikesList)
     return( logLikeMatrix )
+  }
+  
+  if (reassign == F){
+    clusterLikes = sapply(cellLikesList , sum)
+    return( sum ( clusterLikes ) )
   }
   
 }
 
-dmultFast = function(x, prob){ 
-  N = sum(x)
-  logLike = lgamma(N + 1) + sum(log(prob[x == 1]))
-  return( logLike )
-}
 
 
 ### QC ------------------------------------------------------------
@@ -140,25 +138,6 @@ doQC = function(rse, regionSumCutoff = 5, cellSumCutoffSDs = 3){
   cellSumPostQC = Matrix::colSums(assay(rse))
   colData(rse)$cellSumPostQC = cellSumPostQC
   return(rse)
-}
-
-getPCApython = function(Xt, nv, tempDirPCA){
-
-  # write count mat
-  if ( is.null(tempDirPCA) ) {
-    tempDirPCA = getwd()
-  }
-  dir.create(tempDirPCA, showWarnings = F)
-  Matrix::writeMM(Xt, file = file.path(tempDirPCA, 'Xt.mtx'))
-  
-  command = paste('python', file.path(yourPathToDestinRepo, 'src', 'pca.py'), tempDirPCA, nv)
-  # print(command)
-  system(command)
-  
-  pca = list()
-  pca$v = as.matrix(read.table(file = file.path(tempDirPCA, 'PCA.txt')))
-  
-  return(pca)                
 }
 
 
