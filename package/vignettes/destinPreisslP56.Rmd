@@ -425,7 +425,7 @@ We can visualize the clustering results using t-SNE, using default parameters.  
 Annotation by cell type is optional, as cell type is unknown in practice. 
 ```{r}
 set.seed(1)
-plotClusterTsne(clusterResults = results,
+plotCluster(clusterResults = results, type = "t-SNE",
                 clusterLabels = c("IN1", "NG", "EX", "OC", "IN2"))
 ```
 
@@ -445,7 +445,7 @@ clusterResults6 = destinGrid (rse, sampleName,
 
 ```{r}
 set.seed(1)
-plotClusterTsne(clusterResults6, 
+plotCluster(clusterResults6, type = "t-SNE",
                 clusterLabels = c("OC", "IN1", "IN2", "EX", "AC", "MG"))
 ```
 

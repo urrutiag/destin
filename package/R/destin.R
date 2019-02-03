@@ -1,7 +1,6 @@
 
-getDestin = function(rse, nClusters, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1), 
-                      outCluster = F){ 
-                     # depthAdjustment = "postPCA"){
+getDestin = function(rse, nClusters, PCrange=10, TSSWeights=c(1,1), DHSWeights=c(1,1),
+                     depthAdjustment = "postPCA"){
   
   # for normalization
   cellSumPostQC = colData(rse)$cellSumPostQC
@@ -10,71 +9,62 @@ getDestin = function(rse, nClusters, PCrange=10, TSSWeights=c(1,1), DHSWeights=c
   countMatOG = assay(rse)  
   
   ### weight the regions
-  # if ( (TSSWeights != c(1,1)) | (DHSWeights != c(1,1)) ) {
-  rowRanges(rse)$TSSMetric[rowRanges(rse)$region == "promoter"] = TSSWeights[1]
-  rowRanges(rse)$TSSMetric[rowRanges(rse)$region == "distal element"] = TSSWeights[2]
-  rowRanges(rse)$DHSMetric =  dbeta(rowRanges(rse)$DHSsum / 100 + .01, DHSWeights[1], DHSWeights[2])
-  rowRanges(rse)$regionWeight =
-    (rowRanges(rse)$TSSMetric / mean(rowRanges(rse)$TSSMetric)) *
-    (rowRanges(rse)$DHSMetric / mean(rowRanges(rse)$DHSMetric))
-  rse = rse[rowRanges(rse)$regionWeight > 0]
+  if ( any(TSSWeights != 1 ) | any(DHSWeights != 1 ) ) {
+    rowRanges(rse)$TSSMetric[rowRanges(rse)$region == "promoter"] = TSSWeights[1]
+    rowRanges(rse)$TSSMetric[rowRanges(rse)$region == "distal element"] = TSSWeights[2]
+    rowRanges(rse)$DHSMetric =  dbeta(rowRanges(rse)$DHSsum / 100 + .01, DHSWeights[1], DHSWeights[2])
+    rowRanges(rse)$regionWeight =
+      (rowRanges(rse)$TSSMetric / mean(rowRanges(rse)$TSSMetric)) *
+      (rowRanges(rse)$DHSMetric / mean(rowRanges(rse)$DHSMetric))
+    rse = rse[rowRanges(rse)$regionWeight > 0]
   
     X = assay(rse) * rowRanges(rse)$regionWeight  
-  # } else {
-  #   X = assay(rse)
-  # }
+  } else {
+    X = assay(rse)
+  }
   
-  # DR and cluster ---------------------------------------------
  
   set.seed(10)
   
-  # if (depthAdjustment == "prePCA") {
-  #   X_depthPre = t( t(X) / colData(rse)$cellSumPostQC )
-  #   X = X_depthPre
-  #   print("adjusting pre PCA")
-  # }
-   
-  pca = irlba(t(X), nv = max(PCrange))
+  ### Adjust for depth pre PCA
+  if (depthAdjustment == "prePCA") {
+    X_depthPre = t( t(X) / colData(rse)$cellSumPostQC )
+    X = X_depthPre
+  }
 
-  results = lapply (PCrange, function(myNPC) {
-    projection = t(X) %*% pca$v[, 1:myNPC]
+  # PCA   
+  pca = irlba(t(X), nv = max(PCrange))
+  projection = t(X) %*% pca$v
+
+  ### Adjust for depth post PCA
+  if (depthAdjustment == "postPCA") {
+    projection = projection / cellSumPostQC
+  }
+
+  resultsList = lapply (PCrange, function(myNPC) {
     
-    # if (depthAdjustment == "postPCA") {
-      projectionNorm = projection / cellSumPostQC
-      projection = projectionNorm
-    #   print("adjusting post PCA")
-    # }
+    projectionNPCs = projection[, 1:myNPC]
     
     kfit = try(
-      kmeans(projection, centers = nClusters, nstart = 100)
+      kmeans(projectionNPCs, centers = nClusters, nstart = 100)
     )
     if (class(kfit) == "try-error") return (NULL)
     logLike =  getLogLike(countMatOG, kfit$cluster)
     cluster = colData(rse) 
     cluster$cluster = kfit$cluster
     return(list (summary = data.frame(nPCs = myNPC,
+                                      TSSWeight1 = TSSWeights[1],
+                                      TSSWeight2 = TSSWeights[2],
+                                      DHSWeight1 = DHSWeights[1],
+                                      DHSWeight2 = DHSWeights[2],
                                       nPeaksActual = nrow(X),
                                      logLike = logLike),
                  cluster = cluster,
-                 PCs = projection
+                 PCs = projectionNPCs
     ))
   } ) 
   
-  resultsSummary = rbindlist(lapply(results, function(x) x$summary))
-  
-  summary = data.frame(
-    TSSWeight1 = TSSWeights[1],
-    TSSWeight2 = TSSWeights[2],
-    DHSWeight1 = DHSWeights[1],
-    DHSWeight2 = DHSWeights[2],
-    resultsSummary)
-  
-  if (outCluster == F) return(summary)
-  
-  if (outCluster == T) return(list(summary = summary, 
-                                   cluster = results[[1]]$cluster, 
-                                   PCs = results[[1]]$PCs))
-                              
+  return ( resultsList )                          
 }
 
 

@@ -2,15 +2,15 @@
 \alias{plotClusterTsne}
 
 \title{
-Create t-SNE plot of cluster results
+Create PCA or t-SNE plot of cluster results
 }
 \description{
-Performs t-SNE clustering and plots. For visualization only.  T-SNE is not used for Destin clustering. 
+Either plots PCA or performs t-SNE clustering and plots.  T-SNE is highly variable, not used for Destin clustering, and is for visualization only. 
 
 Input are weighted principle components after tuning parameters to optimized to maximize mulitnomial likelihood.  Cells are colored according to Destin clustering.  Can optionally label the clusters. 
 }
 \usage{
-plotClusterTsne(clusterResults, clusterLabels = NULL)
+plotCluster(clusterResults, type = "PCA", clusterLabels = NULL)
 }
 
 \arguments{
@@ -29,13 +29,10 @@ plot is printed
 
 \examples{
 
-results = destinGrid (rse, sampleName,
-                      PCrange = PCrange,
-                      TSSWeightsList = TSSWeightsList,
-                      DHSWeightsList = DHSWeightsList,
-                      nClusters = nClusters,
+results = destinGrid (rse, nClusters = nClusters,
                       nCores = nCores)
                       
-plotClusterTsne(results)
+plotCluster(results)
+
 }
 \keyword{ package }

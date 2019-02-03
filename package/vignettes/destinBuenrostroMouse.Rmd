@@ -359,7 +359,7 @@ GapStat: The gap (Tibshirani et al., 2001) statistic accounts for the tendency t
 We search a space of 1 to 5 number of clusters (user-modifiable). Here we find 2 clusters.  
 ```{r}
 set.seed(10)
-clusterEst = estimateNClusters(rse,   nClustersMax = 5)
+clusterEst = estimateNClusters(rse,   nClustersRange = 1:5, allMethods = T)
 ```
 
 Estimated number of clusters shown in blue by method.
@@ -377,15 +377,12 @@ In this example, we run Destin with default settings aside from lowering the num
 ```{r warning=FALSE } 
 nClusters = clusterEst$nClustersList$logLikeElbow
 PCrange = 3:10
-TSSWeightsList = list(c(1,2), c(1,1.5), c(1,1.25), c(1,1))
-DHSWeightsList = list(c(1,1), c(1,2), c(1,3), c(1,5))
-results = destinGrid (rse, sampleName, 
-            PCrange = PCrange,
-            TSSWeightsList = TSSWeightsList,
-            DHSWeightsList = DHSWeightsList,
-            nClusters = nClusters)
+results = destinGrid (rse, nClusters = nClusters,
+            PCrange = PCrange)
 results$summary
 ```
+
+
 
 
 Next we reassign cells by maximizing each cell's post-classification multinomial likelihood. The input to the multinomial model is the chromatin accessibility count matrix and the cell cluster assignments.  The output is a cell by cluster post-classification likelihood. 
@@ -410,6 +407,10 @@ clusterTable
 paste0("purity = ", purity)
 ```
 
+Plot results PCA
+```{r}
+plotCluster(results, clusterLabels = c("embryonic", "hematopoietic"))
+```
 
 ## 3.9. Differential Accessibility
 

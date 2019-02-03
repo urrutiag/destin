@@ -10,7 +10,7 @@ getElbow = function(measureVec, clusterVec){
 }
 
 #TODO check error on range starts with 2
-estimateNClusters = function(rse, nClustersRange = 1:20, allMethods = F){
+estimateNClusters = function(rse, nClustersRange = 2:20, allMethods = F){
   
   clusterVec = nClustersRange
   
@@ -127,26 +127,35 @@ plotNClusters = function(clusterEst){
 }
 
 
-plotClusterTsne = function(clusterResults,  clusterLabels = NULL){
+plotCluster = function(clusterResults, type = "PCA", clusterLabels = NULL){
 
   clusterAssignment = clusterResults$cluster$cluster
   PCs = clusterResults$PCs
   
-  tsne = Rtsne( as.matrix(PCs) )
-  p = qplot(x = tsne$Y[,1],
-            y = tsne$Y[,2],
+  if (type == "t-SNE") {
+    tsne = Rtsne( as.matrix(PCs) )
+    componentX = tsne$Y[,1]
+    componentY = tsne$Y[,2]
+  }
+  if (type == "PCA") {
+    componentX = PCs[,1]
+    componentY = PCs[,2]
+  }
+  
+  p = qplot(x = componentX,
+            y = componentY,
             col = factor(clusterAssignment),
-            xlab = paste("t-SNE component 1"),
-            ylab = paste("t-SNE component 2"),
-            main = paste0( "2D t-SNE Visualization for ", sampleName)) +  
+            xlab = paste(type, "component 1"),
+            ylab = paste(type, "component 2"),
+            main = paste0( "2D ", type, " Visualization")) +  
     guides(color=FALSE)
   
   #annotation optional
   if ( !is.null( clusterLabels ) ){
     clusterCenters = data.frame(
       label = clusterLabels,
-      x = tapply(tsne$Y[,1], clusterAssignment, mean),
-      y = tapply(tsne$Y[,2], clusterAssignment, mean)
+      x = tapply(componentX, clusterAssignment, mean),
+      y = tapply(componentY, clusterAssignment, mean)
     )
     p = p + with(clusterCenters, annotate("text", x=x, y=y, label = label, size = 6))
   }

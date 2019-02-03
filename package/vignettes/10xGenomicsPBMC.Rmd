@@ -57,9 +57,6 @@ The resulting folder contains 3 files:
 - peaks.bed bed file:  corresponding to rows of matrix.mtx
 - barcodes.tsv:  barcodes corresponding to columns of matrix.mtx
 
-
-# Create ranged summarized experiment from 10x peak by cell matrix 
-
 set data10xDir to appropriate local folder
 ```{r}
 data10xDir = "~/Dropbox/Documents/statGen/scATACseq/10xgenomics/atac_v1_pbmc_5k/filtered_peak_bc_matrix"
@@ -76,7 +73,7 @@ load Destin
 library(destin, quietly = T) 
 ```
 
-Create ranged summarized experiment from 10x peak by cell matrix 
+# Create ranged summarized experiment from 10x peak by cell matrix 
 ```{r}
 rse = createRSEfrom10xMatrix(data10xDir)
 ```
@@ -102,30 +99,25 @@ assay is the binary chromatin accessibility matrix in sparse matrix format
 assay(rse)[1:10,1:10]
 ```
 
-# Cluster cells  
-
-We can now cluster a subset of cells and regions.
-
-For details, please see tutorials using Buenrostro cells or Preissl cells
+# Annotate 
 ```{r}
-  sampleName = 'atac_v1_pbmc_5k'
-  nClusters = 10
   model = "hg19"
-
   rse = annotateRSE(rse, model)
-  
+```
+
+# QC
+```{r}
   rse = doQC(rse, regionSumCutoff = 5, cellSumCutoffSDs = 3)
 ```
 
-Estimate n clusters, only elbow methods 
+# Estimate number of clusters 
 ```{r}
 clusterEst = estimateNClusters(rse, nClustersRange = 2:20)
 nClusters = clusterEst$nClustersList$logLikeElbow
 plotNClusters(clusterEst)
 ```
 
-
-Now perform Destin clustering 
+# Perform Destin clustering 
 ```{r}
 #set nCores to an appropriate value based on your system
 nCores = 7 
@@ -133,9 +125,9 @@ clusterResults = destinGrid (rse, nClusters = nClusters, nCores = nCores)
 clusterResults$cluster
 ```
 
+# Plot results
 ```{r}
-set.seed(10)
-plotClusterTsne(clusterResults)
+plotCluster(clusterResults)
 ```
 
 Time to run
