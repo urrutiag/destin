@@ -10,7 +10,7 @@ For this workflow example we begin at this step 3.5. Load rse.
 
 Previous steps are described for reference.
 
-Approximate run time (8 core macbook pro): 5 minutes
+Approximate run time (8 core macbook pro): 6 minutes
 
 # 1. Data
 - P56 forebrain mouse scATAC-seq from Preissl et al.
@@ -380,7 +380,7 @@ We search a space of 1 to 20 number of clusters (user-modifiable). Here we find 
 ```{r}
 set.seed(10)
 nClustersMax = 20
-clusterEst = estimateNClusters(rse, nClustersMax = nClustersMax, allMethods = F)
+clusterEst = estimateNClusters(rse, allMethods = F)
 plotNClusters(clusterEst)
 ```
 
@@ -401,10 +401,8 @@ Set nCores to an appropriate value based on your system.
 ```{r warning=FALSE}
 #set nCores to an appropriate value based on your system
 nCores = 7 
-sampleName = "PreisslP56"
 nClusters = clusterEst$nClustersList$logLikeElbow
-results = destinGrid (rse, sampleName,
-                      nClusters = nClusters,
+results = destinGrid (rse, nClusters = nClusters,
                       nCores = nCores)
 colData(rse)$cluster = results$cluster$cluster
 results$summary
@@ -436,11 +434,10 @@ PCrange = 10
 TSSWeightsList = list(c(1,2))
 DHSWeightsList = list(c(1,3))
 nClusters = 6
-clusterResults6 = destinGrid (rse, sampleName,
+clusterResults6 = destinGrid (rse,  nClusters = nClusters,
                       PCrange = PCrange,
                       TSSWeightsList = TSSWeightsList,
-                      DHSWeightsList = DHSWeightsList,
-                      nClusters = nClusters)
+                      DHSWeightsList = DHSWeightsList)
 ```
 
 ```{r}

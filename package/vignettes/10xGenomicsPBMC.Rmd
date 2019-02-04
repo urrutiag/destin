@@ -28,7 +28,7 @@ https://support.10xgenomics.com/single-cell-atac/datasets/1.0.1/atac_v1_hgmm_500
 
 10x uses Cell Ranger ATAC 1.0.1 for bioinformatic processing and produces a peak by cell matrix. 
 
-Approximate time to run (8 core macbook pro): ~ 20 min
+Approximate time to run (8 core macbook pro): ~ 13 min
 
 ```{r}
 startTime = Sys.time()
@@ -77,6 +77,16 @@ library(destin, quietly = T)
 ```{r}
 rse = createRSEfrom10xMatrix(data10xDir)
 ```
+
+
+# test memory limits
+```{r}
+countMat = assay(rse)
+countMatBig = cbind(countMat, countMat, countMat, countMat, countMat) 
+countMatBigger = cbind(countMatBig, countMatBig, countMatBig)
+pca = irlba(t(countMatBigger), nv = 2)
+```
+
 
 here is a description of the ranged summarized experiment  
 

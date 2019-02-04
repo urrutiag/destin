@@ -17,13 +17,18 @@ distortion: accounts for the decrease in WCSSE by comparing to a baseline model 
 GapStat: The gap (Tibshirani et al., 2001) statistic accounts for the tendency to overestimate n_k by using a permutation approach and fitting a null distribution to the WCSSE which naturally decreases as n_k increases. Then the empirical WCSSE is compared to the null distribution with the gap statistic as output. To select the number of clusters the “first SE” method is used which determines the first nk where the gap statistic is within 1 standard deviation of the following gap statistic.
 }
 \usage{
-clusterEst = estimateNClusters(rse, nClustersMax)
+clusterEst = estimateNClusters(rse, nClustersRange = 2:20, allMethods = F) 
 }
 \arguments{
     \item{ rse }{
-    ranged summarized experiment containing region by cell accessiblity matrix, region data, and cell data}
-    \item{ nClustersMax }{
-    maximum number of clusters to test, search space begins at 1 }
+    ranged summarized experiment containing region by cell accessiblity matrix, region data, and cell data
+    }
+    \item{ nClustersRange }{
+    number of clusters to test 
+    }
+    \item{ allMethods }{
+    False by default and only produces the two elbow statistics, likelihood based and within cluster SSE. If set to True, will also output the 3 additional metrics described above.
+    }
 }
 
 \value{
@@ -40,8 +45,7 @@ nClustersEstimate: number of clusters pertaining to the best fit
 \examples{
 library(destin)
 
-nClustersMax = 20
-clusterEst = estimateNClusters(rse, nClustersMax = nClustersMax)
+clusterEst = estimateNClusters(rse)
 
 plotNClusters(clusterEst)
 }

@@ -38,9 +38,10 @@ getPurityByDepthAdjustment = function(dataIndex){
     results = destinGrid (rse, nClusters, nCores = 7, depthAdjustment = depthAdjustment)
     clusterTable = table(results$cluster$cluster, results$cluster$cellID)
     clusterPurity = sum( apply( clusterTable, 2, max) ) / sum(clusterTable)
-    out = data.frame(sampleName = sampleName,
-                     depthAdjustment = depthAdjustment,
-                     clusterPurity = clusterPurity)
+    out = results$summary
+    out$sampleName = sampleName
+    out$depthAdjustment = depthAdjustment
+    out$clusterPurity = clusterPurity
     out
   } )
   
