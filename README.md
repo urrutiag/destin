@@ -148,9 +148,9 @@ Determine whether GWAS results are associated with increased chromatin accessibi
 [html](https://rawgit.com/urrutiag/destin/master/package/vignettes/GWAS.html)
 [markdown](https://github.com/urrutiag/destin/blob/master/package/vignettes/GWAS.Rmd)
 
-- Convert 10x genomics chromatin accessibility matrix to ranged summarized experiment
-[html](https://rawgit.com/urrutiag/destin/master/package/vignettes/10xGenomicsToRSE.html)
-[markdown](https://github.com/urrutiag/destin/blob/master/package/vignettes/10xGenomicsToRSE.Rmd)
+- Read 10x genomics scATAC-seq PBMC data and cluster
+[html](https://rawgit.com/urrutiag/destin/master/package/vignettes/10xGenomicsPBMC.html)
+[markdown](https://github.com/urrutiag/destin/blob/master/package/vignettes/10xGenomicsPBMC.Rmd)
 
 
 ## Citations
