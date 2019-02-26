@@ -24,7 +24,7 @@ Peripheral blood mononuclear cells (PBMCs) from a healthy donor.
 
 This dataset is licensed under the Creative Commons Attribution license.
 
-https://support.10xgenomics.com/single-cell-atac/datasets/1.0.1/atac_v1_hgmm_500
+https://support.10xgenomics.com/single-cell-atac/datasets/1.0.1/atac_v1_pbmc_5k
 
 10x uses Cell Ranger ATAC 1.0.1 for bioinformatic processing and produces a peak by cell matrix. 
 
