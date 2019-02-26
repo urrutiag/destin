@@ -13,7 +13,7 @@ annotateRSE(rse, model)
     \item{ rse }{
     ranged summarized experiment containing region by cell accessiblity matrix, region data, and cell data}
     \item{ model }{
-    model used for read alignment. hg19 or mm10 supported }
+    model used for read alignment. hg38, hg19, and mm10 supported }
 }
 
 \value{

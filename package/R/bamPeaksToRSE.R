@@ -67,18 +67,32 @@ createRSEfrom10xMatrix = function(data10xDir)
 
 annotateRSE = function(rse, model){
   
-  DHSfile = system.file(
-    file.path("annotation/encode", 
-              paste0("DHS", model, ".Rdata")), 
-    package = "destin")
+  if ( model %in% c('hg19', 'hg38') ) {
+    filePath = "annotation/encode/DHShg19.Rdata"
+  }
+  if ( model == 'mm10' ) {
+    filePath = "annotation/encode/DHSmm10.Rdata"
+  }  
+
+  load( system.file(filePath, package = "destin") )
   
-  load(DHSfile)
+  if  ( model == 'hg38' ) {
+    chainPath = system.file("annotation/encode/hg19ToHg38.over.chain", package = "destin")
+    chain = import.chain(chainPath)
+    DHSrangesLifted = liftOver(DHSranges, chain)
+    DHSranges = unlist(DHSrangesLifted)
+  }  
+  
   regionIndex = findOverlaps(rowRanges(rse), DHSranges, select="first")
   rowRanges(rse)$DHSsum = DHSranges$DHSfrequency[regionIndex]
   
   if ( model == "hg19" ) { 
     data(TSS.human.GRCh37)
     annoFile = TSS.human.GRCh37 
+  }
+  if ( model == "hg38" ) { 
+    data(TSS.human.GRCh38)
+    annoFile = TSS.human.GRCh38
   }
   if ( model == "mm10" ) {
     data(TSS.mouse.GRCm38)
