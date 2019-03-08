@@ -1,6 +1,6 @@
 ---
 title: Running Destin on 10X Genomics scATAC-seq data of 5k PBMC cells
-author: Yuchao Jiang
+author: Eugene Urrutia, Yuchao Jiang
 output: 
     html_document:
         theme: cosmo 
@@ -150,7 +150,7 @@ clusterResults$cluster
 ```
 
 # Plot results
-```{r}
+```{r warning=FALSE}
 plotCluster(clusterResults, type = "t-SNE")
 ```
 
