@@ -4,7 +4,7 @@ This is the Jiang lab scATAC-seq processing and cell clustering pipeline.
 
 ## Manuscript
 
-Urrutia, Eugene, et al. "Destin: toolkit for single-cell analysis of chromatin accessibility." bioRxiv (2018): 461905. [link](https://www.biorxiv.org/content/early/2018/11/05/461905?rss=1)
+Urrutia, Eugene, et al. "Destin: toolkit for single-cell analysis of chromatin accessibility." Bioinformatics, btz141, 2019. [link](https://academic.oup.com/bioinformatics/advance-article/doi/10.1093/bioinformatics/btz141/5367832)
 
 ## Questions & issues
   If you have any questions or problems when using destin, please feel free to open a new issue [here](https://github.com/urrutiag/destin/issues). You can also email the maintainers of the corresponding packages -- the contact information is below.
