@@ -419,6 +419,7 @@ Destin performs differential chromatin accessibility testing via the Fisher test
 The output includes a genetic feature, Bonferroni corrected p-value and log2 fold change for each chromatin accessible region. We show the two clusters for the first 1K peaks here.
 
 ```{r}
+alternateCellLabel = results$cluster$cluster
 rse = getDiffAccess(rse, clusterMap = results$cluster)
 ```
 
@@ -427,6 +428,19 @@ Results of differential accessibility (top 10 p-values per cluster)
 rowRanges(rse)[order(rowRanges(rse)$pValsCor_1, decreasing = F)][1:10, c("feature", "pValsCor_1", "log2FC_1")] 
 
 rowRanges(rse)[order(rowRanges(rse)$pValsCor_2, decreasing = F)][1:10, c("feature", "pValsCor_2", "log2FC_2")] 
+```
+
+Alternatively, we can examine differential access on a label such as disease vs. healthy, treated vs untreated etc.
+```{r}
+alternateCellLabel = c(rep('Disease', 5), rep('Health', 12)) 
+rse = getDiffAccess(rse, alternateCellLabel = alternateCellLabel)
+```
+
+Results of differential accessibility (top 10 p-values per cluster)
+```{r}
+rowRanges(rse)[order(rowRanges(rse)$pValsCor_Disease, decreasing = F)][1:10, c("feature", "pValsCor_Disease", "log2FC_Disease")] 
+
+rowRanges(rse)[order(rowRanges(rse)$pValsCor_Health, decreasing = F)][1:10, c("feature", "pValsCor_Health", "log2FC_Health")] 
 ```
 
 Time to run 

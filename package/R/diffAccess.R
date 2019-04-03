@@ -1,11 +1,16 @@
 
-getDiffAccess = function(rse, clusterMap, nCores = NULL){
+getDiffAccess = function(rse, clusterMap = NULL, 
+                         alternateCellLabel = NULL, nCores = NULL){
   
   # return error if not 
   # all.equal(clusterMap$cellID, rse$cellID)
   
   #INPUT:
-  C = clusterMap$cluster
+  if ( !is.null(clusterMap) ){
+    C = clusterMap$cluster
+  } else if ( !is.null(alternateCellLabel) ){
+    C = alternateCellLabel
+  }
   X = assay(rse)
   
   if(!is.null(nCores)){
