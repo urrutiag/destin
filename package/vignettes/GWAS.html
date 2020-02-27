@@ -23,7 +23,7 @@
 
 
 <style type="text/css">code{white-space: pre;}</style>
-<style type="text/css">
+<style type="text/css" data-origin="pandoc">
 div.sourceCode { overflow-x: auto; }
 table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
   margin: 0; padding: 0; vertical-align: baseline; border: none; }
@@ -59,7 +59,29 @@ code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
 code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
 code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
 code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+
 </style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
 <style type="text/css">
   pre:not([class]) {
     background-color: white;
@@ -122,6 +144,9 @@ img {
 button.code-folding-btn:focus {
   outline: none;
 }
+summary {
+  display: list-item;
+}
 </style>
 
 
@@ -129,14 +154,74 @@ button.code-folding-btn:focus {
 <div class="container-fluid main-container">
 
 <!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
 <script>
 $(document).ready(function () {
   window.buildTabsets("TOC");
 });
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
 </script>
 
 <!-- code folding -->
-
 
 
 
@@ -154,12 +239,15 @@ $(document).ready(function () {
 <ul>
 <li><a href="#data">1. Data</a></li>
 <li><a href="#process-chromatin-accessiblility-data-for-cell-type-specific-gwas">2. Process chromatin accessiblility data for cell-type specific GWAS</a><ul>
-<li><a href="#conversion-from-mouse-annotation-to-human-annnotation">2.1. Conversion from mouse annotation to human annnotation</a><ul>
-<li><a href="#mgi-symbol-mouse">2.1.1. MGI symbol (Mouse)</a></li>
-<li><a href="#hgnc-human-via-mouse-human-homolog">2.1.2. HGNC (Human) via Mouse-Human homolog</a></li>
-<li><a href="#entrez-id-human">2.1.3. Entrez ID (Human)</a></li>
-<li><a href="#annotation-results">2.1.4. Annotation results</a></li>
+<li><a href="#provide-human-symbol-hgnc-annotation-for-the-chromatin-accessible-regions.">2.1. Provide human symbol (HGNC) annotation for the chromatin accessible regions.</a></li>
+<li><a href="#conversion-from-mouse-annotation-to-human-annnotation">2.1.1 Conversion from mouse annotation to human annnotation</a><ul>
+<li><a href="#mgi-symbol-mouse">2.1.1.1 MGI symbol (Mouse)</a></li>
+<li><a href="#hgnc-human-via-mouse-human-homolog">2.1.1.2. HGNC (Human) via Mouse-Human homolog</a></li>
+<li><a href="#entrez-id-human">2.1.1.3. Entrez ID (Human)</a></li>
+<li><a href="#annotation-results">2.1.1.4. Annotation results</a></li>
 </ul></li>
+<li><a href="#directly-annotate-human-features">2.1.2 Directly annotate human features</a></li>
+<li><a href="#annotate-from-from-mouse-annotation-to-human-annnotation">2. Annotate from from mouse annotation to human annnotation</a></li>
 <li><a href="#aggregate-chromatin-acessibility-by-gene">2.2. Aggregate chromatin acessibility by gene</a></li>
 <li><a href="#calculate-cell-type-specificity-for-chromatin-accessilbilty-by-gene">2.3. Calculate Cell type specificity for chromatin accessilbilty by gene</a></li>
 </ul></li>
@@ -183,7 +271,7 @@ $(document).ready(function () {
 </div>
 
 <p>cell-type specific GWAS association</p>
-<p>Approximate run time (8 core macbook pro): ~ 6 min</p>
+<p>Approximate run time (8 core macbook pro): ~ 7 min</p>
 <div id="data" class="section level1">
 <h1>1. Data</h1>
 <ul>
@@ -195,11 +283,99 @@ $(document).ready(function () {
 <li>original fastq files contain all 3034 cells combined</li>
 </ul>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">startTime =<span class="st"> </span><span class="kw">Sys.time</span>()</code></pre></div>
-<p>load libraries and set paths, set packageDir to the path where you have cloned the git repository</p>
+<p>set packageDir to the path where you have cloned the git repository and install</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">packageDir =<span class="st"> &quot;~/Documents/gitRepos/destin&quot;</span>
-<span class="kw">install.packages</span>(<span class="kw">file.path</span>(packageDir,<span class="st">&quot;package&quot;</span>), <span class="dt">repos =</span> <span class="ot">NULL</span>, <span class="dt">type =</span> <span class="st">&quot;source&quot;</span>)
-<span class="kw">library</span>(destin, <span class="dt">quietly =</span> T)
-gwasDir =<span class="st"> &quot;~/Dropbox/Gene_shared/scATACseq/articles/GWAS&quot;</span>
+<span class="kw">install.packages</span>(<span class="kw">file.path</span>(packageDir,<span class="st">&quot;package&quot;</span>), <span class="dt">repos =</span> <span class="ot">NULL</span>, <span class="dt">type =</span> <span class="st">&quot;source&quot;</span>)</code></pre></div>
+<p>load libraries and set paths according to your system</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(destin, <span class="dt">quietly =</span> T)</code></pre></div>
+<pre><code>## 
+## Attaching package: 'BiocGenerics'</code></pre>
+<pre><code>## The following objects are masked from 'package:parallel':
+## 
+##     clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+##     clusterExport, clusterMap, parApply, parCapply, parLapply,
+##     parLapplyLB, parRapply, parSapply, parSapplyLB</code></pre>
+<pre><code>## The following objects are masked from 'package:stats':
+## 
+##     IQR, mad, sd, var, xtabs</code></pre>
+<pre><code>## The following objects are masked from 'package:base':
+## 
+##     anyDuplicated, append, as.data.frame, basename, cbind,
+##     colMeans, colnames, colSums, dirname, do.call, duplicated,
+##     eval, evalq, Filter, Find, get, grep, grepl, intersect,
+##     is.unsorted, lapply, lengths, Map, mapply, match, mget, order,
+##     paste, pmax, pmax.int, pmin, pmin.int, Position, rank, rbind,
+##     Reduce, rowMeans, rownames, rowSums, sapply, setdiff, sort,
+##     table, tapply, union, unique, unsplit, which, which.max,
+##     which.min</code></pre>
+<pre><code>## 
+## Attaching package: 'S4Vectors'</code></pre>
+<pre><code>## The following object is masked from 'package:base':
+## 
+##     expand.grid</code></pre>
+<pre><code>## 
+## Attaching package: 'Biostrings'</code></pre>
+<pre><code>## The following object is masked from 'package:base':
+## 
+##     strsplit</code></pre>
+<pre><code>## </code></pre>
+<pre><code>## 
+## Attaching package: 'data.table'</code></pre>
+<pre><code>## The following object is masked from 'package:GenomicRanges':
+## 
+##     shift</code></pre>
+<pre><code>## The following object is masked from 'package:IRanges':
+## 
+##     shift</code></pre>
+<pre><code>## The following objects are masked from 'package:S4Vectors':
+## 
+##     first, second</code></pre>
+<pre><code>## Welcome to Bioconductor
+## 
+##     Vignettes contain introductory material; view with
+##     'browseVignettes()'. To cite Bioconductor, see
+##     'citation(&quot;Biobase&quot;)', and for packages 'citation(&quot;pkgname&quot;)'.</code></pre>
+<pre><code>## 
+## Attaching package: 'matrixStats'</code></pre>
+<pre><code>## The following objects are masked from 'package:Biobase':
+## 
+##     anyMissing, rowMedians</code></pre>
+<pre><code>## 
+## Attaching package: 'DelayedArray'</code></pre>
+<pre><code>## The following objects are masked from 'package:matrixStats':
+## 
+##     colMaxs, colMins, colRanges, rowMaxs, rowMins, rowRanges</code></pre>
+<pre><code>## The following object is masked from 'package:Biostrings':
+## 
+##     type</code></pre>
+<pre><code>## The following objects are masked from 'package:base':
+## 
+##     aperm, apply</code></pre>
+<pre><code>## 
+## Attaching package: 'GenomicAlignments'</code></pre>
+<pre><code>## The following object is masked from 'package:data.table':
+## 
+##     last</code></pre>
+<pre><code>## 
+## Attaching package: 'gridExtra'</code></pre>
+<pre><code>## The following object is masked from 'package:Biobase':
+## 
+##     combine</code></pre>
+<pre><code>## The following object is masked from 'package:BiocGenerics':
+## 
+##     combine</code></pre>
+<pre><code>## 
+## Attaching package: 'Matrix'</code></pre>
+<pre><code>## The following object is masked from 'package:S4Vectors':
+## 
+##     expand</code></pre>
+<pre><code>## Warning: replacing previous import 'data.table::first' by
+## 'GenomicAlignments::first' when loading 'destin'</code></pre>
+<pre><code>## Warning: replacing previous import 'data.table::last' by
+## 'GenomicAlignments::last' when loading 'destin'</code></pre>
+<pre><code>## Warning: replacing previous import 'data.table::second' by
+## 'GenomicAlignments::second' when loading 'destin'</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">gwasDir =<span class="st"> &quot;~/Dropbox/Gene_shared/scATACseq/articles/GWAS&quot;</span>
 outDir =<span class="st"> &quot;~/Documents/statGenGit/GWASout&quot;</span> </code></pre></div>
 <p>Load clustered chromatin accessibility summarized experiment. QC and annotate clusters.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">load</span>(<span class="kw">file.path</span>(packageDir, <span class="st">&quot;practice/PreisslP56/peaks/PreisslP56Annotated.Rdata&quot;</span>))
@@ -210,56 +386,59 @@ clusterData =<span class="st"> </span><span class="kw">fread</span>(<span class=
 <div id="process-chromatin-accessiblility-data-for-cell-type-specific-gwas" class="section level1">
 <h1>2. Process chromatin accessiblility data for cell-type specific GWAS</h1>
 <p>To prepare for cell-type specific GWAS association, we must: - provide human annotation for the chromatin accessible regions. - aggregate the binary signal across peaks within each gene - calculate cell type specificity for chromatin accessibility by gene</p>
+<div id="provide-human-symbol-hgnc-annotation-for-the-chromatin-accessible-regions." class="section level2">
+<h2>2.1. Provide human symbol (HGNC) annotation for the chromatin accessible regions.</h2>
+</div>
 <div id="conversion-from-mouse-annotation-to-human-annnotation" class="section level2">
-<h2>2.1. Conversion from mouse annotation to human annnotation</h2>
+<h2>2.1.1 Conversion from mouse annotation to human annnotation</h2>
 <p>GWAS predominantly use human subjects, while our data set is mouse forebrain. Thus we need to utilize a series of 3 conversions to map the accessible regions to HGNC and Entrez ID.</p>
 <p>annotated peak feature (mouse) -&gt; MGI symbol (mouse) -&gt; HGNC symbol (human) -&gt; Entrez ID (human)</p>
 <div id="mgi-symbol-mouse" class="section level3">
-<h3>2.1.1. MGI symbol (Mouse)</h3>
+<h3>2.1.1.1 MGI symbol (Mouse)</h3>
 <p>MGI symbol is mapped according to ensembl_gene_id, which was annotated during the Destin clustering (“TSS.mouse.GRCm38” from the R ChIPpeakAnnopackage). We use the BioMart dataset “mmusculus_gene_ensembl” to map to MGI symbol.</p>
 <p>The mmusculus conversion data frame “mmusculusConversion.Rdata” is preinstalled with Destin</p>
 </div>
 <div id="hgnc-human-via-mouse-human-homolog" class="section level3">
-<h3>2.1.2. HGNC (Human) via Mouse-Human homolog</h3>
+<h3>2.1.1.2. HGNC (Human) via Mouse-Human homolog</h3>
 <p>Next, we map mouse to human gene using homolog list “HOM_MouseHumanSequence.rpt” from MGI. Only genes with 1 to 1 homolog mapping were retained.</p>
 <p>“HOM_MouseHumanSequence.rpt” is preinstalled with Destin</p>
 </div>
 <div id="entrez-id-human" class="section level3">
-<h3>2.1.3. Entrez ID (Human)</h3>
+<h3>2.1.1.3. Entrez ID (Human)</h3>
 <p>Finally, we use bioMart again to map to Entrez ID, after which accessible regions were aggregated by gene.</p>
 <p>The hsapiens conversion data frame “hsapiensConversion.Rdata” is preinstalled with Destin.</p>
 </div>
 <div id="annotation-results" class="section level3">
-<h3>2.1.4. Annotation results</h3>
+<h3>2.1.1.4. Annotation results</h3>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">rse =<span class="st"> </span><span class="kw">annotateMouseToHuman</span>(rse)
 <span class="kw">rowRanges</span>(rse)</code></pre></div>
 <pre><code>## GRanges object with 70658 ranges and 13 metadata columns:
-##           seqnames                 ranges strand |     score signalValue
-##              &lt;Rle&gt;              &lt;IRanges&gt;  &lt;Rle&gt; | &lt;numeric&gt;   &lt;numeric&gt;
-##       [1]     chr1     [3597507, 3597732]      * |        33     2.83530
-##       [2]     chr1     [3649211, 3649594]      * |        40     3.15033
-##       [3]     chr1     [3654966, 3655506]      * |        68     4.29448
-##       [4]     chr1     [3670496, 3672507]      * |       564     7.45739
-##       [5]     chr1     [4089665, 4090022]      * |       155     7.24576
-##       ...      ...                    ...    ... .       ...         ...
-##   [70654]     chrX [168698186, 168698436]      * |        40     3.15033
-##   [70655]     chrX [168795436, 168795702]      * |        47     3.46536
-##   [70656]     chrX [169270711, 169270911]      * |        54     3.78040
-##   [70657]     chrX [169299659, 169300030]      * |       106     5.67060
-##   [70658]     chrX [169319901, 169320794]      * |       790    12.62255
-##              pValue    qValue      peak     DHSsum distanceToTSS
-##           &lt;numeric&gt; &lt;numeric&gt; &lt;integer&gt;  &lt;numeric&gt;     &lt;numeric&gt;
-##       [1]   3.36450   1.52226        66  0.0952381         73991
-##       [2]   4.03729   2.11312       101  5.4166511         22287
-##       [3]   6.89429   4.72941       295  0.1785714         16532
-##       [4]  56.41362  52.68634      1248 11.1109307          1002
-##       [5]  15.55749  12.93645       166  1.2896825        270649
-##       ...       ...       ...       ...        ...           ...
-##   [70654]   4.03729   2.11312       119  1.5944600        -24288
-##   [70655]   4.74970   2.75158       182 15.7707071           336
-##   [70656]   5.49855   3.43169        96  0.6481481         49661
-##   [70657]  10.62655   8.22295       223 14.4206427         20713
-##   [70658]  79.01832  74.63280       612 21.8929173           471
+##           seqnames              ranges strand |     score signalValue
+##              &lt;Rle&gt;           &lt;IRanges&gt;  &lt;Rle&gt; | &lt;numeric&gt;   &lt;numeric&gt;
+##       [1]     chr1     3597507-3597732      * |        33      2.8353
+##       [2]     chr1     3649211-3649594      * |        40     3.15033
+##       [3]     chr1     3654966-3655506      * |        68     4.29448
+##       [4]     chr1     3670496-3672507      * |       564     7.45739
+##       [5]     chr1     4089665-4090022      * |       155     7.24576
+##       ...      ...                 ...    ... .       ...         ...
+##   [70654]     chrX 168698186-168698436      * |        40     3.15033
+##   [70655]     chrX 168795436-168795702      * |        47     3.46536
+##   [70656]     chrX 169270711-169270911      * |        54      3.7804
+##   [70657]     chrX 169299659-169300030      * |       106      5.6706
+##   [70658]     chrX 169319901-169320794      * |       790    12.62255
+##              pValue    qValue      peak             DHSsum distanceToTSS
+##           &lt;numeric&gt; &lt;numeric&gt; &lt;integer&gt;          &lt;numeric&gt;     &lt;numeric&gt;
+##       [1]    3.3645   1.52226        66 0.0952380952380952         73991
+##       [2]   4.03729   2.11312       101    5.4166511048864         22287
+##       [3]   6.89429   4.72941       295  0.178571428571429         16532
+##       [4]  56.41362  52.68634      1248   11.1109307359307          1002
+##       [5]  15.55749  12.93645       166   1.28968253968254        270649
+##       ...       ...       ...       ...                ...           ...
+##   [70654]   4.03729   2.11312       119   1.59446000622471        -24288
+##   [70655]    4.7497   2.75158       182   15.7707070707071           336
+##   [70656]   5.49855   3.43169        96  0.648148148148148         49661
+##   [70657]  10.62655   8.22295       223   14.4206427015251         20713
+##   [70658]  79.01832   74.6328       612   21.8929172679173           471
 ##                      feature         region  mgi_symbol HomoloGene.ID
 ##                  &lt;character&gt;    &lt;character&gt; &lt;character&gt;     &lt;integer&gt;
 ##       [1] ENSMUSG00000051951 distal element        Xkr4         45848
@@ -289,6 +468,19 @@ clusterData =<span class="st"> </span><span class="kw">fread</span>(<span class=
 ##   -------
 ##   seqinfo: 20 sequences from an unspecified genome; no seqlengths</code></pre>
 </div>
+</div>
+<div id="directly-annotate-human-features" class="section level2">
+<h2>2.1.2 Directly annotate human features</h2>
+<p>Alternatively, if conducting a human scATAC-seq experiment, user can simplify the steps above, and the conversion becomes:</p>
+<p>annotated Esememble peak feature (human) -&gt; HGNC symbol (human) + Entrez ID (human)</p>
+<p>annotateHuman() utilizes addGeneIDs function from ChIPpeakAnno package to annotate human Entrez ID and HGNC symbol from Ensemble feature. org.Hs.eg.db data set is used for annotation.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># rse = annotateHuman(rse)</span>
+<span class="co"># rowRanges(rse)</span></code></pre></div>
+</div>
+<div id="annotate-from-from-mouse-annotation-to-human-annnotation" class="section level2">
+<h2>2. Annotate from from mouse annotation to human annnotation</h2>
+<p>GWAS predominantly use human subjects, while our data set is mouse forebrain. Thus we need to utilize a series of 3 conversions to map the accessible regions to HGNC and Entrez ID.</p>
+<p>annotated peak feature (mouse) -&gt; MGI symbol (mouse) -&gt; HGNC symbol (human) -&gt; Entrez ID (human)</p>
 </div>
 <div id="aggregate-chromatin-acessibility-by-gene" class="section level2">
 <h2>2.2. Aggregate chromatin acessibility by gene</h2>
@@ -503,7 +695,7 @@ pMagmaData</code></pre></div>
 <p>Time to run</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">TotalTime =<span class="st"> </span><span class="kw">Sys.time</span>() <span class="op">-</span><span class="st"> </span>startTime
 TotalTime</code></pre></div>
-<pre><code>## Time difference of 6.729351 mins</code></pre>
+<pre><code>## Time difference of 8.939172 mins</code></pre>
 </div>
 </div>
 </div>

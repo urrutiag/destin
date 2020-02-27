@@ -22,7 +22,7 @@ startTime = Sys.time()
 ```
 
  set packageDir to the path where you have cloned the git repository and install 
-```{r message=FALSE, warning=FALSE, eval = F}
+```{r message=FALSE, warning=FALSE, eval = T}
 packageDir = "~/Documents/gitRepos/destin"
 install.packages(file.path(packageDir,"package"), repos = NULL, type = "source")
 ```
@@ -50,33 +50,56 @@ To prepare for cell-type specific GWAS association, we must:
 - aggregate the binary signal across peaks within each gene
 - calculate cell type specificity for chromatin accessibility by gene
 
-## 2.1. Conversion from mouse annotation to human annnotation
+## 2.1. Provide human symbol (HGNC) annotation for the chromatin accessible regions.
+ 
+## 2.1.1 Conversion from mouse annotation to human annnotation
 
 GWAS predominantly use human subjects, while our data set is mouse forebrain.  Thus we need to utilize a series of 3 conversions to map the accessible regions to HGNC and Entrez ID.
 
 annotated peak feature (mouse) -> MGI symbol  (mouse) -> HGNC symbol (human) -> Entrez ID (human) 
 
-### 2.1.1. MGI symbol (Mouse)
+### 2.1.1.1 MGI symbol (Mouse)
 MGI symbol is mapped according to ensembl_gene_id, which was annotated during the Destin clustering ("TSS.mouse.GRCm38" from the R ChIPpeakAnnopackage).  We use the BioMart dataset "mmusculus_gene_ensembl" to map to MGI symbol.
 
 The mmusculus conversion data frame "mmusculusConversion.Rdata" is preinstalled with Destin
 
-### 2.1.2. HGNC (Human) via Mouse-Human homolog
+### 2.1.1.2. HGNC (Human) via Mouse-Human homolog
 Next, we map mouse to human gene using homolog list "HOM_MouseHumanSequence.rpt" from MGI. Only genes with 1 to 1 homolog mapping were retained. 
 
 "HOM_MouseHumanSequence.rpt" is preinstalled with Destin
 
-### 2.1.3. Entrez ID (Human)
+### 2.1.1.3. Entrez ID (Human)
 
 Finally, we use bioMart again to map to Entrez ID, after which accessible regions were aggregated by gene.
 
 The hsapiens conversion data frame "hsapiensConversion.Rdata" is preinstalled with Destin.
 
-### 2.1.4. Annotation results
+### 2.1.1.4. Annotation results
 ```{r}
 rse = annotateMouseToHuman(rse)
 rowRanges(rse)
 ```
+
+## 2.1.2 Directly annotate human features
+
+Alternatively, if conducting a human scATAC-seq experiment, user can simplify the steps above, and the conversion becomes: 
+
+annotated Esememble peak feature (human) -> HGNC symbol (human) + Entrez ID (human)
+
+annotateHuman() utilizes addGeneIDs function from ChIPpeakAnno package to annotate human Entrez ID and HGNC symbol from Ensemble feature. org.Hs.eg.db data set is used for annotation.
+
+```{r}
+# rse = annotateHuman(rse)
+# rowRanges(rse)
+```
+
+
+## 2. Annotate from  from mouse annotation to human annnotation
+
+GWAS predominantly use human subjects, while our data set is mouse forebrain.  Thus we need to utilize a series of 3 conversions to map the accessible regions to HGNC and Entrez ID.
+
+annotated peak feature (mouse) -> MGI symbol  (mouse) -> HGNC symbol (human) -> Entrez ID (human) 
+
 
 
 ## 2.2. Aggregate chromatin acessibility by gene 

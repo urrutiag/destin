@@ -15,3 +15,5 @@ practice/gwas/magma/g1000_eur
 practice/gwas/magma/scz/
 .ipynb_checkpoints
 .idea
+.Rproj.user
+destin.Rproj

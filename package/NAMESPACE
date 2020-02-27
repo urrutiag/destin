@@ -15,7 +15,9 @@ export(annotateRSE,
   annotateMouseToHuman,
   aggregateRSEByGene,
   getGeneAccessibility,
-  getQuantsForMagma
+  getQuantsForMagma,
+  genTestRSE,
+  annotateHuman
 )
 
 import(

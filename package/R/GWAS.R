@@ -38,6 +38,52 @@ getEWCE = function( geneAccessibility, geneList, nBoot = 1000 ) {
   return(finalP[])
 }
 
+
+genTestRSE = function(){
+  nrows <- 12; ncols <- 12
+  counts <- matrix(runif(nrows * ncols, 1, 1e4), nrows)
+  rowRanges <- GRanges(seqnames=c("1", "2", "3", "4", "5", "6", 
+                                  "2", "6", "6", "6", "6", "5"),
+                       ranges=IRanges(start=c(967654, 2010897, 2496704, 3075869, 
+                                              3123260, 3857501, 201089, 1543200, 
+                                              1557200, 1563000, 1569800, 167889600),
+                                      end= c(967754, 2010997, 2496804, 3075969, 
+                                             3123360, 3857601, 201089, 1555199,
+                                             1560599, 1565199, 1573799, 167893599),
+                                      names=paste("Site", 1:12, sep="")))
+  colData <- DataFrame(cluster=rep(c("1", "2"), 6),
+                       row.names=LETTERS[1:12])
+  rse <- SummarizedExperiment(assays=SimpleList(counts=counts),
+                              rowRanges=rowRanges, colData=colData)
+  
+  return(rse)
+}
+
+annotateHuman = function(rse){
+
+  # see addGeneIDs for orgAnn info and options
+  # assumes rse already contains feature column from annotateRSE (uses annotatePeakInBatch() from ChIPpeakAnno)  
+  rowRanges(rse) = addGeneIDs(rowRanges(rse), orgAnn = 'org.Hs.eg.db',
+                              IDs2Add=c("entrez_id", 'symbol'))
+  names(mcols(rse))[names(mcols(rse))=="entrez_id"] = "entrezID"
+  names(mcols(rse))[names(mcols(rse))=="symbol"] = "humanSymbol"
+
+  # Alternatively
+  # Entrez ID (Human)
+  # mart = useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
+  # conversion = getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "entrezgene"), mart=mart)
+  # load( system.file("mart/hsapiensConversion.Rdata", package = "destin") )
+  # elementMetadata(rse)$entrezID =
+  #   conversion$entrezgene[match(
+  #     elementMetadata(rse)$feature,
+  #     conversion$ensembl_gene_id)]
+  
+  # Drop all genes which do not have entrezID
+  rse = rse[!is.na(elementMetadata(rse)$entrezID)]
+  
+  return( rse )
+}
+
 annotateMouseToHuman = function(rse){
   
   # MGI symbol (Mouse)
@@ -81,7 +127,6 @@ annotateMouseToHuman = function(rse){
 }
 
 
-
 aggregateRSEByGene = function(rse, nCores = NULL){
   
   # create list of aggregated chromatin accessibility by entrez ID 
@@ -89,13 +134,22 @@ aggregateRSEByGene = function(rse, nCores = NULL){
   
   aggregateGene = function(myGene){
     miniRse = rse[rowRanges(rse)$entrezID == myGene]
-    outList = list(
+      
+    if ( 'mgi_symbol' %in% colnames(mcols(rowRanges(miniRse))) ){
       rowData = data.frame(entrezID = myGene,
-                           hgncSymbol = rowRanges(miniRse)$humanSymbol[1],
-                           mgiSymbol = rowRanges(miniRse)$mgi_symbol[1],
-                           nSNPs = nrow(miniRse)),
-      assay = t(as(apply(assay(miniRse), 2, sum), "sparseMatrix"))
+                             hgncSymbol = rowRanges(miniRse)$humanSymbol[1],
+                             mgiSymbol = rowRanges(miniRse)$mgi_symbol[1],
+                             nSNPs = nrow(miniRse))
+    } else {
+      rowData = data.frame(entrezID = myGene,
+                             hgncSymbol = rowRanges(miniRse)$humanSymbol[1],
+                             nSNPs = nrow(miniRse))
+    }
+    
+    outList = list( rowData = rowData,
+                    assay = t(as(apply(assay(miniRse), 2, sum), "sparseMatrix"))
     )
+    
     return ( outList )
   }
   
